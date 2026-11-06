@@ -1,24 +1,20 @@
 {
   "schedules": [
-    "45,50,55 3 * * 1-5",
-    "*/5 4-9 * * 1-5",
-    "0 10 * * 1-5"
+    "30,35,40,45,50,55 13 * * 1-5",
+    "*/5 14-20 * * 1-5",
+    "0 21 * * 1-5"
   ],
   "chainSelectorName": "arc-testnet",
-  "exchangeAddress": "",
+  "exchangeAddress": "0x93662de514b981f8c7bf97085e359e0f18034804",
   "gasLimit": "1000000",
   "readBlock": "latest",
-  "twelveData": {
-    "baseUrl": "https://api.twelvedata.com",
-    "exchange": "",
-    "micCode": "XNSE",
-    "fxSymbol": "USD/INR",
+  "yahoo": {
+    "baseUrl": "https://query1.finance.yahoo.com/v8/finance/chart",
     "requestTimeout": "8s",
     "cacheMaxAgeSeconds": 0
   },
   "tickerOverrides": {},
-  "maxStocksPerRun": 14,
-  "fxSanityRange": { "min": 40, "max": 200 },
+  "maxStocksPerRun": 15,
   "timestampSkewSeconds": 30,
   "onMoveExceeded": "clamp"
 }

@@ -41,3 +41,11 @@ This is the **project memory** - what Arc Studio remembers about building this a
 bun install
 bun run dev
 ```
+
+## Deployed contracts (Arc Testnet, chain 5042002)
+
+- StockExchange: 0x93662de514b981f8c7bf97085e359e0f18034804 (inventory model, owner 0xC658A9Bd5ADE6CCd87874f5De925528CE57b4C93, CRE mock forwarder)
+- IndexFactory: 0x9fa4034efb237a7c154adea20b1ccfa0cd538b11 (registrar = address(0), same owner)
+- SIPManager: 0xd96ea5a6c776eac72e5da4f7abb838b5da053f3a (no owner)
+- ABIs and addresses: `contracts/contract-metadata/`
+- Pending owner steps: `StockExchange.setTrustedFactory(IndexFactory)`, then `listExternalStock` for the bridged tokens and fund inventory/reserve.
