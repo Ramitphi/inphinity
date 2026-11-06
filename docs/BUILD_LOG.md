@@ -56,6 +56,7 @@ The orchestrator session holds the testnet-only team wallet `0xC658A9Bd5ADE6CCd8
 | 20:12 (14:42) | Independent review of PR #2: only 8 `cre/` files change vs main (GitHub's 38-file count was a stale base); CRE logic matches the exchange; 20/20 tests. Risk noted: mock forwarder + public simulator author means anyone can push bounded prices; keep the reserve small, roll back with `setPriceSource(0)` after judging | [review](https://github.com/Ramitphi/inphinity/pull/2#issuecomment-6687549153) |
 | 20:20 (14:50) | NAV explainer `docs/NAV.md` (PR #14): what moves NAV and NAV per share, spread paid by the investor, fee as dilution, stale-price freeze, known ZeroNAV edge after a full exit | [PR #14](https://github.com/Ramitphi/inphinity/pull/14) |
 | 21:00 (15:30) | **Issuer toolkit copied into Arc Studio**: all 14 files of `issuer/` (CCTP issuance on Base Sepolia, bridging to Arc, exchange setup, demo-fund scripts, deployment record) saved in the Studio workspace next to the contracts; every file checked byte-for-byte against GitHub `main`. Nothing installed or run in Studio | Studio app `7582b931…` |
+| 21:20–21:35 (15:50–16:05) | **Full Arc Studio sync with GitHub `main`**: compared all 171 files (31 already identical); uploaded 64 files in two batches: the CCIP contracts (`contracts/ccip/`), ENS tooling (`ens/`), Chainlink CRE workflow (`cre/`), the full web app (`src/`, `index.html`, `package.json`, `bun.lock`) and docs (`BUILD_LOG`, `DECISIONS`, `NAV`, `NAV_BRAINSTORM`, design mockups). Studio ran `bun install` + `bun run build`: passes, so the Studio preview now runs the real Inphinity app. Not uploaded: 26 screenshot PNGs (on GitHub) and `cre/.env.example` (the CLI refuses `.env*` files) | Studio app `7582b931…` |
 
 ## Live addresses
 
@@ -77,5 +78,5 @@ The orchestrator session holds the testnet-only team wallet `0xC658A9Bd5ADE6CCd8
 - [ ] Inventory for the 8 newer stocks (tNFLX…tORCL)
 - [x] CCIP naming retest (`aibuilders`) delivered on Sepolia
 - [ ] Public hosting of the web app
-- [ ] Arc Studio project synced with GitHub `main`
+- [x] Arc Studio project synced with GitHub `main` (21:35 IST)
 - [ ] README, architecture diagram, demo video, ETHGlobal submission
