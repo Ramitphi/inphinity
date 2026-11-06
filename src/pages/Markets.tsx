@@ -36,14 +36,15 @@ export function Markets() {
             <th>Symbol</th>
             <th className="hide-sm">Company</th>
             <th className="r">Last (USDC)</th>
-            <th className="r">Change</th>
+            <th className="r">1D</th>
+            <th className="r hide-sm">Since listing</th>
             <th className="r hide-sm">Available</th>
             <th className="r"><span className="hide-sm">Trade</span></th>
           </tr>
         </thead>
         <tbody>
           {isLoading && Array.from({ length: 8 }, (_, i) => (
-            <tr key={i}><td colSpan={6}><span className="skel" style={{ width: '100%' }} /></td></tr>
+            <tr key={i}><td colSpan={7}><span className="skel" style={{ width: '100%' }} /></td></tr>
           ))}
           {stocks.map((s) => (
             <Fragment key={s.token}>
@@ -51,7 +52,8 @@ export function Markets() {
                 <td className="sym">{ticker(s.symbol)}</td>
                 <td className="name hide-sm">{s.company}</td>
                 <Flash as="td" className="r" value={Number(s.price)}><Lcd value={usd(s.price).replace(/,/g, '')} /></Flash>
-                <td className="r"><Change v={s.change} /></td>
+                <td className="r"><Change v={s.dayChange} /></td>
+                <td className="r hide-sm"><Change v={s.change} /></td>
                 <td className="r mono hide-sm">{qty(s.inventory, 0)}</td>
                 <td className="r" style={{ whiteSpace: 'nowrap' }}>
                   <button className={`btn buy sm ${sel?.token === s.token && sel.side === 'buy' ? 'on' : ''}`} onClick={() => open(s.token, 'buy')}>Buy</button>{' '}
@@ -59,7 +61,7 @@ export function Markets() {
                 </td>
               </tr>
               {sel?.token === s.token && (
-                <tr><td colSpan={6} className="expand">
+                <tr><td colSpan={7} className="expand">
                   <TradePanel stock={s} side={sel.side} setSide={(side) => setSel({ token: s.token, side })} onDone={refetch} onClose={() => setSel(null)} />
                 </td></tr>
               )}
@@ -69,7 +71,7 @@ export function Markets() {
       </table>
       {stale && <div className="alert">Some prices are older than the exchange allows ({Math.round(Number(maxAge.data) / 3600)}h), so buys may fail until the oracle pushes a fresh report.</div>}
       <div className="note">
-        {oldest !== undefined && <>Prices updated {ago(oldest, now)} · </>}Spread 0.5% each way · Change is versus the listing price · Prices set by oracle (Chainlink CRE) · Not real securities, testnet demo.
+        {oldest !== undefined && <>Prices updated {ago(oldest, now)} · </>}Spread 0.5% each way · 1D is versus the last price reported before today's NYSE open · Prices set by oracle (Chainlink CRE) · Not real securities, testnet demo.
       </div>
     </>
   )
