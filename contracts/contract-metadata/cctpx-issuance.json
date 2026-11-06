@@ -1,0 +1,51 @@
+{
+  "status": "pending-signer-funding",
+  "homeChain": "Base_Sepolia",
+  "destChain": "Arc_Testnet",
+  "signer": "0x2DE4AC9CF4B44675FED22DC507C8949889E41Ed0",
+  "owner": "0xC658A9Bd5ADE6CCd87874f5De925528CE57b4C93",
+  "minter": "0xC658A9Bd5ADE6CCd87874f5De925528CE57b4C93",
+  "exchange": "0x93662de514b981f8c7bf97085e359e0f18034804",
+  "tokens": [
+    {
+      "symbol": "tAAPL",
+      "name": "Apple (mock)",
+      "salt": "0xf4107cec08c8275326ee31e18c03af248cfcc3c5a8aef3d3c0ea0e3d1797fcaa"
+    },
+    {
+      "symbol": "tMSFT",
+      "name": "Microsoft (mock)",
+      "salt": "0x0ee9bba381630caec452778d4cd40472720e0f3df03bd328e7ab0f8070fc7f91"
+    },
+    {
+      "symbol": "tNVDA",
+      "name": "Nvidia (mock)",
+      "salt": "0xf9c67a117f0b67bc03677c74a9a8f0c1dd7483fd84acee9ce64bcc0a4793b816"
+    },
+    {
+      "symbol": "tTSLA",
+      "name": "Tesla (mock)",
+      "salt": "0x8ed68ee6a9d416ee65c3e48d6d780e0472a25dd6b039b72714549f70b0b36656"
+    },
+    {
+      "symbol": "tAMZN",
+      "name": "Amazon (mock)",
+      "salt": "0x8d532fae03fe4a577a9a7bd9df7a3e907ac4a31997ccff187210ec9f2fc1773f"
+    },
+    {
+      "symbol": "tGOOGL",
+      "name": "Alphabet (mock)",
+      "salt": "0x9eeaa44e7574ed2b865f270f67a88de800acef508ca92776cc3aa3769b125d2b"
+    },
+    {
+      "symbol": "tMETA",
+      "name": "Meta Platforms (mock)",
+      "salt": "0x3f8fc872cdf19f9bdd5603bb958827d1eaa1c7e7aa7c73344e67a86daf3536b4"
+    },
+    {
+      "symbol": "tSPY",
+      "name": "SPDR S&P 500 ETF (mock)",
+      "salt": "0x774edfefbbdbf2c9d84a106c5494d6ac3d80b80e9e31ff9051e2dd8b5c66759a"
+    }
+  ]
+}
