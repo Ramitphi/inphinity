@@ -136,7 +136,7 @@ centred on index funds.
 - Portfolio leads with fund positions.
 - Headline: "Index funds from any tokenized stock".
 
-**Status:** recommended; waiting for Ramit's go.
+**Status:** **decided** by Ramit on 7 Nov, ~00:50 IST ("make Inphinity index-only"). The UI change is being built in a dedicated session; the onchain lock stays a next step.
 
 ## 5. Prices: Chainlink CRE
 
