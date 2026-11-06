@@ -8,7 +8,8 @@
     "deploy": "tsx --env-file=/home/user/.inphinity/deployer.env scripts/deploy-tokens.ts",
     "bridge": "tsx --env-file=/home/user/.inphinity/deployer.env scripts/bridge.ts",
     "typecheck": "tsc --ignoreConfig --noEmit --allowImportingTsExtensions --module esnext --moduleResolution bundler --target esnext --strict --skipLibCheck --types node scripts/*.ts",
-    "setup-exchange": "tsx --env-file=/home/user/.inphinity/deployer.env scripts/setup-exchange.ts"
+    "setup-exchange": "tsx --env-file=/home/user/.inphinity/deployer.env scripts/setup-exchange.ts",
+    "bridge-all": "tsx --env-file=/home/user/.inphinity/deployer.env scripts/bridge-all.ts"
   },
   "keywords": [],
   "author": "",
