@@ -36,7 +36,7 @@ export function expectedEnsName(symbol: string, name: string): string | null {
   return l ? `${l}.${ENS_PARENT}` : null
 }
 
-const KEYS = ['inphinity.weights', 'inphinity.fee', 'inphinity.creator', 'inphinity.symbol', 'inphinity.chain'] as const
+const KEYS = ['inphinity.weights', 'inphinity.fee', 'inphinity.creator', 'inphinity.symbol', 'inphinity.chain', 'inphinity.ccip'] as const
 export type FundEns = { name: string; records: Partial<Record<(typeof KEYS)[number], string>> }
 
 async function arcAddressOf(name: string) {
@@ -72,3 +72,5 @@ export function useFundEns(fund: Address | undefined, symbol: string | undefined
 }
 
 export const ensAppUrl = (name: string) => `${ENS_APP}/${name}`
+/** Chainlink CCIP explorer page for the message that created the name. */
+export const ccipMessageUrl = (messageId: string) => `https://ccip.chain.link/msg/${messageId}`

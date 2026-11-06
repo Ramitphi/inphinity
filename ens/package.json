@@ -9,9 +9,11 @@
     "setup-registry": "bun run src/setup-registry.ts",
     "relayer": "bun run src/relayer.ts",
     "verify": "bun run src/verify.ts",
+    "ccip-setup": "bun run src/ccip-setup.ts",
     "typecheck": "tsc --noEmit",
     "test:fork": "bun run test/fork-e2e.ts",
-    "fork": "bunx hardhat@2.26.3 --config test/hardhat.config.cjs node --port 8545"
+    "fork": "bunx hardhat@2.26.3 --config test/hardhat.config.cjs node --port 8545",
+    "test:ccip": "bun run test/ccip-fork-e2e.ts"
   },
   "dependencies": {
     "viem": "2.57.5"

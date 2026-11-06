@@ -49,6 +49,8 @@ export const registryAbi = parseAbi([
   "function roles(uint256 anyId, address account) view returns (uint256)",
   "function hasRoles(uint256 anyId, uint256 roleBitmap, address account) view returns (bool)",
   "function isEmancipated() view returns (bool)",
+  "function hasRootRoles(uint256 roleBitmap, address account) view returns (bool)",
+  "function grantRootRoles(uint256 roleBitmap, address account) returns (bool)",
   "function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes data)",
   "function unsafeTransfer(address to, uint256 tokenId, bytes data)",
   "error LabelAlreadyRegistered(string label)",
@@ -79,6 +81,7 @@ export const permissionedResolverAbi = parseAbi([
   "function multicall(bytes[] calls) returns (bytes[] results)",
   "function hasRoles(uint256 resource, uint256 roleBitmap, address account) view returns (bool)",
   "function hasRootRoles(uint256 roleBitmap, address account) view returns (bool)",
+  "function grantRootRoles(uint256 roleBitmap, address account) returns (bool)",
   "error EACUnauthorizedAccountRoles(uint256 resource, uint256 roleBitmap, address account)",
   "error InvalidRecord()",
 ]);
@@ -90,6 +93,9 @@ export const profileAbi = parseAbi([
 ]);
 
 export const indexFactoryAbi = parseAbi([
+  "function registrar() view returns (address)",
+  "function setRegistrar(address registrar_)",
+  "function owner() view returns (address)",
   "event IndexCreated(address indexed fund, address indexed creator, string name, string symbol, string label)",
   "function indexCount() view returns (uint256)",
   "function indexAt(uint256 index) view returns (address)",
