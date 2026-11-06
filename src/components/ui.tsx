@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { pct } from '../lib/format'
 
-/** 7-segment digits with faint unlit "8" ghosts behind each lit digit. */
-export function Lcd({ value, big, className = '' }: { value: string; big?: boolean; className?: string }) {
-  return <span className={`lcd ${big ? 'big' : ''} ${className}`} data-ghost={value.replace(/[0-9]/g, '8')}>{value}</span>
+/** A figure in the app's one number style (the same plain VT323 digits as "Shares out"). `big` is the hero size. */
+export function Num({ value, big, className = '' }: { value: string; big?: boolean; className?: string }) {
+  return <span className={`num ${big ? 'big' : ''} ${className}`}>{value}</span>
 }
 
 /** Flashes green/red briefly when `value` moves up/down. */
@@ -26,15 +26,14 @@ export function Change({ v }: { v: number | undefined }) {
   return <span className={`chg ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'} {pct(up ? Math.abs(v) : v)}</span>
 }
 
-/** LCD amount input; accepts digits and a single dot, limited to `decimals`. */
+/** Amount input in the app's number style; accepts digits and a single dot, limited to `decimals`. */
 export function AmountInput({ value, onChange, unit, decimals = 6, bad, id }: { value: string; onChange: (v: string) => void; unit: string; decimals?: number; bad?: boolean; id?: string }) {
   return (
     <div className={`field ${bad ? 'bad' : ''}`}>
-      <div className="lcd-wrap">
-        <span className="ghost" aria-hidden>{(value || '0.00').replace(/[0-9]/g, '8')}</span>
+      <div className="num-wrap">
         <input
           id={id}
-          className="lcd-input"
+          className="num-input"
           inputMode="decimal"
           autoComplete="off"
           placeholder="0.00"

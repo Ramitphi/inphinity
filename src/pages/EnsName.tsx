@@ -5,7 +5,7 @@ import { EXPLORER, FACTORY, factoryAbi, fundAbi, COMPANY } from '../lib/contract
 import { ccipMessageUrl, ensAppUrl, ensExplorerRecordsUrl, useEnsProfile, PROFILE_KEYS } from '../lib/ens'
 import { INCEPTION_TIP, short, sinceInception, usd, qty } from '../lib/format'
 import { Link } from '../lib/router'
-import { Change, KV, Lcd } from '../components/ui'
+import { Change, KV, Num } from '../components/ui'
 import { POLL } from '../hooks/data'
 
 const chainId = arcTestnet.id
@@ -82,7 +82,7 @@ export function EnsName({ name }: { name: string }) {
         <div className="navbig">
           <div>
             <div className="stat">NAV per share (live, Arc)</div>
-            <Lcd big value={nps === undefined ? '—' : usd(nps).replace(/,/g, '')} />
+            <Num big value={nps === undefined ? '—' : usd(nps)} />
           </div>
           <div title={INCEPTION_TIP}><Change v={sinceInception(nps)} /><div className="stat" style={{ marginTop: 4 }}>since inception</div></div>
           <div className="stat">AUM<b>${usd(aum)}</b></div>
