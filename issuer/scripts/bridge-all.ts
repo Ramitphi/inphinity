@@ -18,7 +18,10 @@ const wait = async (hash: `0x${string}`, what: string) => {
 };
 
 const pending: { symbol: string; token: `0x${string}`; before: bigint }[] = [];
+// Optional: ONLY=tAMD,tJPM limits the run to those symbols.
+const only = process.env.ONLY?.split(",").map((x) => x.trim()).filter(Boolean);
 for (const rec of Object.values(state)) {
+  if (only && !only.includes(rec.symbol)) continue;
   if (rec.arcToken === zeroAddress) { console.log(`${rec.symbol}: not on Arc, skipped`); continue; }
   const before = await arc.readContract({ address: rec.arcToken, abi: erc20Abi, functionName: "balanceOf", args: [recipient] });
   await wait(await baseWallet.writeContract({ address: rec.baseToken, abi: erc20Abi, functionName: "mint", args: [account.address, amount] }), `${rec.symbol} mint`);
