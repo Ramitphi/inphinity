@@ -84,6 +84,60 @@ Studio.
 **SIPs:** `SIPManager` (recurring investments) was built and deployed but has no screen. We cut it from the demo
 for time.
 
+### 4a. Measuring a fund: "since inception" from NAV, not a blend (brainstorm, 7 Nov, ~00:15 IST)
+
+**Question (Ramit):** why is the price change only measured against each stock's listing price?
+
+**Why it was that way:**
+- Onchain price history started on 6 Nov: listings at 15:02 and 18:46 IST, the first CRE report at 19:47,
+  and the US market open at 20:00.
+- So there is no earlier close to compare with. The **1D** column (previous close = last CRE price before
+  the latest NYSE open) equals "vs listing" until a second trading day exists. The market is closed during
+  Saturday judging, so that stays true for the demo.
+
+**The real problem:** funds showed a **weighted blend of their stocks' changes**. That isn't the fund's
+performance, because it ignores the fee, idle USDC and when each investor came in.
+
+**Decision:**
+- **Funds** show **"since inception" = NAV per share vs 1.00**. Every fund starts at exactly 1.00; investors pay
+  their own spread, so existing holders aren't diluted.
+  - This is net of the management fee (dilution) and includes idle USDC.
+  - Live examples at ~00:30 IST: BCHIP +0.97%, RMT +0.70%, empty funds 0.00%.
+- **Stocks** keep 1D plus **"since listing"** (renamed from "vs listing").
+- The **Create** preview, a hypothetical basket, keeps the blend, labelled "basket, since listing".
+
+**Status:** built in PR #24.
+
+### 4b. Index-only product: no single-stock buying in the app (brainstorm, 7 Nov, ~00:35 IST)
+
+**Idea (Ramit):** keep Inphinity for index trading only, with no single-stock buying, so the product is
+centred on index funds.
+
+**For:**
+- **One clear story,** "index funds from any tokenized stock". Single-stock trading is what every
+  tokenized-stock venue already offers; user-created funds are the new part.
+- **A simpler demo:** create → invest → NAV moves with Chainlink prices → ENS name.
+- **A better fit for the "Indian next" angle:** diversified funds are an easier regulatory and product story than
+  single-stock trading.
+- **Nothing breaks underneath.** Funds still buy and sell their stocks through the StockExchange, so CRE
+  prices, Bridge Kit inventory and NAV maths are unchanged.
+
+**Caveat:**
+- The exchange contract's `buy`/`sell` stay public onchain. Hiding them in the app doesn't stop a direct
+  contract call.
+- Locking them to registered funds would need an exchange redeploy. The contract already tracks
+  `registeredFunds` through the factory, but `buy` doesn't check it. Too risky the night before judging, so it's
+  a next step.
+
+**Proposed app changes (UI only):**
+- Indices becomes the home page.
+- Markets becomes a read-only **Prices** board: live CRE prices, 1D, since listing, inventory and "in N
+  funds", with a "Build a fund with this →" button instead of Buy/Sell.
+- Portfolio leads with fund positions.
+- Headline: "Index funds from any tokenized stock".
+
+**Status:** recommended; waiting for Ramit's go.
+
 ## 5. Prices: Chainlink CRE
 
 **Options:**
@@ -190,6 +244,7 @@ them."
 
 - **Indian stocks:** NSE prices through CRE, and a licensed issuer or custodian on a home chain.
 - **ENS:** live NAV via a CCIP-Read gateway (see 6a).
+- **Index-only onchain:** restrict `StockExchange.buy`/`sell` to registered funds (see 4b).
 - **Production:** CRE deployed on a DON with the KeystoneForwarder instead of the mock, and real liquidity
   providers for exchange inventory.
 - **Product:** a SIP screen, fund rebalancing, and a secondary market for fund shares if demand appears.

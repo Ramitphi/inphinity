@@ -40,6 +40,13 @@ This is the **project memory** - what Arc Studio remembers about building this a
 - Every meaningful step (merge, deploy, onchain transaction, live test, finding, decision) gets a row in `docs/BUILD_LOG.md`: time in IST with UTC in brackets, one line on what happened, and a commit hash or explorer link. Close items in its "Open items" list as they land.
 - After each update, mirror the log into the Arc Studio project (app `7582b931-f752-4b46-a210-d0898b2062a7`) so Studio shows the same timeline: `arc-studio run "<overwrite docs/BUILD_LOG.md with the attached file, touch nothing else>" --file docs/BUILD_LOG.md:docs/ --app 7582b931-f752-4b46-a210-d0898b2062a7`, then confirm with `arc-studio cat docs/BUILD_LOG.md`.
 - Keep the Studio workspace in step with GitHub `main` (code, contracts, this file) after merges, so the Arc Studio project link always shows the current build.
+- **"sync to arc" command:** when Ramit says "sync to arc", push everything from the current work into the Arc Studio project in one go:
+  1. Record new brainstorms and decisions in `docs/DECISIONS.md`.
+  2. Add timeline rows to `docs/BUILD_LOG.md`.
+  3. Upload every file that changed on GitHub `main` since the last sync, plus these docs, from open PR branches if not merged yet.
+  4. Verify each uploaded file byte-for-byte with `arc-studio cat`, and report what was synced.
+  Skip PNG screenshots and `.env*` files (the CLI refuses them). Check `arc-studio usage --json` first.
+- Brainstorms that change the product (what to build, what to cut, how something is measured) always go into `docs/DECISIONS.md`, so Studio holds the reasoning, not only the code.
 
 ## To Run
 
