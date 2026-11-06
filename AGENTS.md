@@ -26,6 +26,12 @@ This is the **project memory** - what Arc Studio remembers about building this a
 - `src/components/` - UI components
 - `src/config.ts` - wagmi config (chains, connectors, transports)
 
+## Fund names on ENS (Sepolia)
+
+- Each fund gets `<label>.<parent>.eth` on Ethereum Sepolia with its metadata (creator, fee, composition, venue) as ENS records. See `docs/ens-sepolia.md`.
+- `contracts/FundNamePublisher.sol` (Sepolia) writes the names; `scripts/ens-relayer.ts` (`bun run ens:relayer`) watches `IndexCreated` on Arc and calls it.
+- `IndexFactory.createIndex` requires a unique label of 3 to 20 characters, `a-z0-9`; check with `isLabelAvailable(label)` before submitting.
+
 ## Share links
 
 - Starter apps already ship `getShareBase`, `buildShareLink` and `installShareSync` in `src/lib/share.ts`; import them instead of rewriting them.

@@ -15,14 +15,21 @@ contract IndexFactory is Ownable, ReentrancyGuard {
     address[] private _indexes;
     mapping(address => address[]) private _byCreator;
     mapping(address => bool) public isIndex;
+    /// @notice ENS label => fund. Labels are unique on Arc so the Sepolia name can never clash.
+    mapping(bytes32 => address) public fundByLabel;
     uint256 private constant MAX_PAGE = 100;
 
     error InvalidConfiguration();
     error InvalidBasket();
     error InvalidMetadata();
     error InvalidPageSize();
+    error InvalidLabel();
+    error LabelTaken(string label);
     event RegistrarUpdated(address indexed registrar);
-    event IndexCreated(address indexed fund, address indexed creator, string name, string symbol, string label);
+    /// @dev The ENS relayer watches this event and publishes `<label>.<parent>` on Sepolia.
+    event IndexCreated(
+        address indexed fund, address indexed creator, string name, string symbol, string label, string description
+    );
 
     constructor(address initialOwner, address venue_, address usdc_, address registrar_) Ownable(initialOwner) {
         if (venue_ == address(0) || usdc_ == address(0) || venue_.code.length == 0
@@ -34,8 +41,8 @@ contract IndexFactory is Ownable, ReentrancyGuard {
     }
 
     /// @notice Creates a validated fund; configured registrar failures roll back the whole transaction.
-    /// @dev Label rules and availability are enforced by the registrar. Metadata lengths are bounded.
-    /// When registrar is zero, label is ignored (any length, including empty) and emitted unchanged.
+    /// @dev The label is the fund's ENS subname: 3 to 20 characters of a-z and 0-9, unique per factory.
+    /// Metadata lengths are bounded.
     function createIndex(
         string memory name, string memory symbol, string memory label,
         address[] memory tokens, uint16[] memory weightsBps, uint16 feeBps, string memory description
@@ -44,17 +51,34 @@ contract IndexFactory is Ownable, ReentrancyGuard {
         if (bytes(name).length == 0 || bytes(name).length > 128
             || bytes(symbol).length == 0 || bytes(symbol).length > 32
             || bytes(description).length > 2048) revert InvalidMetadata();
+        if (!isValidLabel(label)) revert InvalidLabel();
+        bytes32 labelKey = keccak256(bytes(label));
+        if (fundByLabel[labelKey] != address(0)) revert LabelTaken(label);
         address naming = registrar;
-        if (naming != address(0) && (bytes(label).length == 0 || bytes(label).length > 64)) {
-            revert InvalidMetadata();
-        }
         fund = address(new IndexFund(name, symbol, venue, usdc, msg.sender, tokens, weightsBps, feeBps));
         IStockVenue(venue).registerFund(fund);
         isIndex[fund] = true;
+        fundByLabel[labelKey] = fund;
         _indexes.push(fund);
         _byCreator[msg.sender].push(fund);
         if (naming != address(0)) IIndexRegistrar(naming).register(label, fund, msg.sender, description);
-        emit IndexCreated(fund, msg.sender, name, symbol, label);
+        emit IndexCreated(fund, msg.sender, name, symbol, label, description);
+    }
+
+    /// @notice Same rule as the ENS publisher on Sepolia: 3 to 20 characters, lowercase a-z and 0-9.
+    function isValidLabel(string memory label) public pure returns (bool) {
+        bytes memory value = bytes(label);
+        if (value.length < 3 || value.length > 20) return false;
+        for (uint256 i; i < value.length; ++i) {
+            bytes1 c = value[i];
+            if (!((c >= 0x61 && c <= 0x7a) || (c >= 0x30 && c <= 0x39))) return false;
+        }
+        return true;
+    }
+
+    /// @notice True when the label is well-formed and no fund uses it yet.
+    function isLabelAvailable(string memory label) external view returns (bool) {
+        return isValidLabel(label) && fundByLabel[keccak256(bytes(label))] == address(0);
     }
 
     function _validateBasket(address[] memory tokens, uint16[] memory weights, uint16 fee) private view {

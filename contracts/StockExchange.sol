@@ -10,6 +10,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ReceiverTemplate} from "./ReceiverTemplate.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IStockVenue} from "./interfaces/IStockVenue.sol";
+import {StockToken} from "./StockToken.sol";
 
 /// @notice Curated mock stock venue with funded USDC redemptions and authenticated CRE pricing.
 contract StockExchange is IStockVenue, ReceiverTemplate, Ownable2Step, ReentrancyGuard {
