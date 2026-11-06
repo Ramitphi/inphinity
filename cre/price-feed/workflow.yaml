@@ -1,0 +1,11 @@
+# Workflow settings. The target name must also exist in ../project.yaml.
+# Docs: https://docs.chain.link/cre/reference/project-configuration-ts
+arc-testnet-settings:
+  user-workflow:
+    workflow-name: "stock-price-feed"
+    # deployment-registry: omitted = default public onchain Workflow Registry.
+    # Set "private" for the Chainlink-hosted private registry; run `cre registry list` to see what your org can use.
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.json"
+    secrets-path: "../secrets.yaml"

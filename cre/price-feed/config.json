@@ -1,0 +1,24 @@
+{
+  "schedules": [
+    "45,50,55 3 * * 1-5",
+    "*/5 4-9 * * 1-5",
+    "0 10 * * 1-5"
+  ],
+  "chainSelectorName": "arc-testnet",
+  "exchangeAddress": "",
+  "gasLimit": "1000000",
+  "readBlock": "latest",
+  "twelveData": {
+    "baseUrl": "https://api.twelvedata.com",
+    "exchange": "",
+    "micCode": "XNSE",
+    "fxSymbol": "USD/INR",
+    "requestTimeout": "8s",
+    "cacheMaxAgeSeconds": 0
+  },
+  "tickerOverrides": {},
+  "maxStocksPerRun": 14,
+  "fxSanityRange": { "min": 40, "max": 200 },
+  "timestampSkewSeconds": 30,
+  "onMoveExceeded": "clamp"
+}

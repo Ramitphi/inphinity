@@ -1,0 +1,4 @@
+.env
+node_modules/
+*.wasm
+binary.wasm.br.b64

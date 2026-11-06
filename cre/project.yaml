@@ -1,0 +1,9 @@
+# CRE project settings, shared by every workflow in this folder.
+# Docs: https://docs.chain.link/cre/reference/project-configuration-ts
+#
+# The target name below is what you pass to the CLI: --target arc-testnet-settings
+arc-testnet-settings:
+  rpcs:
+    # CRE chain name for Arc Testnet (chain id 5042002). Used for the getStocks() read and the report write.
+    - chain-name: arc-testnet
+      url: https://rpc.testnet.arc.network
