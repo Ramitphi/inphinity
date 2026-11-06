@@ -4,12 +4,11 @@ import { toast } from 'sonner'
 import { arcTestnet, baseSepolia } from 'viem/chains'
 import { erc20Abi, formatUnits, type EIP1193Provider } from 'viem'
 import { EXCHANGE, EXPLORER } from '../lib/contracts'
-import { short, ticker, units } from '../lib/format'
+import { short, ticker, units, parse } from '../lib/format'
 import { Link } from '../lib/router'
 import { BASE_EXPLORER, STEPS, clearJob, estimateFee, markArrived, startBridge, useBridgeJob, type BridgeJob } from '../lib/bridge'
 import { BRIDGEABLE, STOCK_CATALOG } from '../lib/stocks'
 import { AmountInput, KV, useDebounced, useNow } from '../components/ui'
-import { parse } from './Markets'
 
 export function Bridge() {
   const job = useBridgeJob()
@@ -254,7 +253,7 @@ function Progress({ job }: { job: BridgeJob }) {
         <KV k="Arc balance now">{arc.data === undefined ? '—' : `${units(arc.data)} ${sym}`}</KV>
         <div className="row-actions">
           {job.status === 'done' && isConnected && chainId !== arcTestnet.id && <button className="btn solid" onClick={() => switchChain({ chainId: arcTestnet.id })}>Switch back to Arc</button>}
-          {job.status === 'done' && <Link className="btn" to="/">Sell or invest on Arc →</Link>}
+          {job.status === 'done' && <Link className="btn" to={`/create?with=${encodeURIComponent(sym)}`}>Build a fund with it →</Link>}
           {job.status !== 'running' && <button className="btn" onClick={clearJob}>{job.status === 'error' ? 'Try again' : 'Bridge more'}</button>}
           {job.status === 'running' && job.steps.transfer.state !== 'done' && job.error === undefined && <span className="note" style={{ margin: 0 }}>Confirm each step in your wallet.</span>}
         </div>
