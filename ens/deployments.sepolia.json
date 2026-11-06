@@ -1,0 +1,13 @@
+{
+  "userRegistry": "0xefC414eb999907620AbdA991decD2BD22aBb9Ac1",
+  "userRegistrySalt": "inphinity.eth:fund-registry:v1",
+  "resolver": "0x26E1611FD97133dfaef7b562D88528e8C1649ae2",
+  "resolverSalt": "inphinity.eth:resolver:v1",
+  "funds": {
+    "0x9272a103f49399d1b7fd538f7a5103e11080895a": {
+      "label": "bchip.inphinity.eth",
+      "fund": "0x9272a103f49399d1b7FD538f7a5103E11080895A",
+      "creator": "0xC658A9Bd5ADE6CCd87874f5De925528CE57b4C93"
+    }
+  }
+}
