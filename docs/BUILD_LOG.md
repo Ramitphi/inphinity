@@ -52,6 +52,7 @@ The orchestrator session holds the testnet-only team wallet `0xC658A9Bd5ADE6CCd8
 | 19:47 (14:17) | **First live Chainlink CRE report on Arc**: `cre workflow simulate --broadcast` → Chainlink forwarder → StockExchange; 15 prices written, `lastReportAt` set. Cost 278,986 gas × 25 gwei ≈ 0.007 USDC per update | [report tx](https://testnet.arcscan.app/tx/0xd2a96bfedcf3733d8da9e38332221142d5996ebf6f8307aa78b9936d5779375e) |
 | 19:50 (14:20) | CRE runbook: measured cost, `.env` override gotcha (an empty `CRE_ETH_PRIVATE_KEY=` line beats an exported variable), `run-loop.sh` refuses an empty key | `ae425fc` |
 | 19:50 (14:20) | Audit finding: CCIP naming fee quote jumped from ~0.5 to ~21.9 USDC (testnet fee data); registrar holds 1.96 USDC, so new funds skip naming until topped up. Fund creation is unaffected | [ArcEnsRegistrar](https://testnet.arcscan.app/address/0x39437a4f9c2ed49c5c3310681d440b26a0cb23cd) |
+| 21:55 (16:25) | **CCIP naming fallback** built (`ens/src/fallback.ts`, `fallback-loop.sh` every 30 min). It names a fund via the relayer only when CCIP can't: `NamingSkipped`, or a message still unnamed after 2 h. A stored receiver failure gets `retry(messageId)`. Lock file and a re-check before each write, so no double names. Live dry run: BCHIP and AIBLD named; **RMT** (skipped, fee too low) and **AICHIP** (`ccipdemo`, CCIP message still FAILED, never manually executed, so unnamed) are queued for the fallback. Dedicated key needs only UserRegistry `ROLE_REGISTRAR` plus resolver `SET_ADDRESS`, `SET_TEXT` and `LINK` (`grant-fallback-roles.ts`), ~4.1M Sepolia gas per naming. No transactions sent | `c793b70`, [CCIP msg ccipdemo](https://ccip.chain.link/msg/0x08a922cce895778a8a557d3ffa545b08b5f2b3cd4c781ef9b21976316327b926) |
 
 ## Live addresses
 
@@ -73,5 +74,6 @@ The orchestrator session holds the testnet-only team wallet `0xC658A9Bd5ADE6CCd8
 - [ ] Inventory for the 8 newer stocks (tNFLX…tORCL)
 - [x] CCIP naming retest (`aibuilders`) delivered on Sepolia
 - [ ] Public hosting of the web app
+- [ ] CCIP fallback: grant the dedicated key its roles, fund it (~0.05 Sepolia ETH), start `ens/fallback-loop.sh` on Ramit's Mac (names RMT and AICHIP on its first run)
 - [ ] Arc Studio project synced with GitHub `main`
 - [ ] README, architecture diagram, demo video, ETHGlobal submission

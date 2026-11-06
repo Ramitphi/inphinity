@@ -139,7 +139,7 @@ bun run ccip-setup -- --disable         # kill switch: setRegistrar(0), fund cre
 Before `--enable`, the app on `main` must send a label in `createIndex`. Once a registrar is set,
 the factory rejects an empty label. The frontend in this branch sends one.
 
-Keep the relayer as a backup if you like (`bun run relayer -- --once` now and then). It skips names
+Keep the relayer as a backup if you like (`bun run relayer -- --once` now and then), or better, run the [CCIP fallback](#ccip-fallback), which only acts when CCIP can't. It skips names
 CCIP already wrote. Don't run it in watch mode at the same time as CCIP: it could register a fund
 before the CCIP message lands, and the message would then take the `-2` label.
 
@@ -182,6 +182,78 @@ Sepolia wallet with a high gas limit (e.g. 9,000,000), after fixing the cause.
 
 Manual execution replays the original message with its original label. If that label has since
 been taken by another fund, the receiver still dedupes it to `-2`.
+
+## CCIP fallback
+
+CCIP naming can fail in two ways the receiver can't fix on its own:
+
+- the registrar never sent a message (`NamingSkipped`, e.g. `fee balance too low`), so nothing
+  will ever arrive;
+- the message failed at the OffRamp (e.g. out of gas) or stalled, so it never reached the receiver.
+
+`src/fallback.ts` covers both, and does nothing in every other case. It reads every fund from
+`IndexFactory`, the `ArcEnsRegistrar` events, and Sepolia, then decides per fund:
+
+| State | Action |
+| --- | --- |
+| some `<label>[-n].inphinity.eth` already resolves (Arc coin type) to the fund | skip |
+| `NamingSkipped` | **name via relayer** (`processFund`) |
+| `NamingRequested`, and `receiver.failedMessages(id)` is set (the receiver caught an error) | `receiver.retry(id)`: stays on the CCIP path |
+| `NamingRequested`, older than **2 h**, still unnamed | **name via relayer** |
+| `NamingRequested`, younger than 2 h | wait (normal delivery is minutes) |
+| no registrar event (created before CCIP naming was on) | report only |
+
+The table also shows the CCIP explorer status (`api.ccip.chain.link`) for each message. That column
+is information only; decisions use chain state.
+
+**No double calls:**
+
+- a lock file (`ens/.fallback.lock`) stops two runs overlapping;
+- the "already named" check runs again right before each write;
+- nothing acts on a message younger than 2 h (a constant, not configurable);
+- both writers are idempotent per fund. The relayer's `chooseLabel` and the receiver's
+  `_chooseLabel` both return the existing label when it already resolves to this fund. The fallback
+  names a fund with the label its CCIP message carried, so a late CCIP delivery (or a manual
+  execution) finds that name and only rewrites the same records.
+
+One narrow race remains. The relayer registers a name and writes its records in two transactions,
+about one Sepolia block apart. If a stale message executes exactly between them, the receiver sees
+a registered name with no address yet and takes `-2`. That needs a message older than 2 h to land
+in that ~12 s window.
+
+```bash
+cd ens
+bun run fallback -- --dry-run            # decision table only, no key needed
+cp .env.example .env                     # PRIVATE_KEY = the dedicated fallback key
+./fallback-loop.sh                       # every 30 min; logs to ens/fallback-loop.log
+DRY_RUN=1 MAX_RUNS=1 ./fallback-loop.sh  # one dry run through the loop
+INTERVAL=600 ./fallback-loop.sh          # every 10 min
+```
+
+`fallback-loop.sh` refuses to start if `ens/.env` has an empty or malformed `PRIVATE_KEY` line
+(64 hex, `0x` optional).
+
+**Dedicated key, minimal roles.** Don't run the loop with the team key. Grant a fresh key exactly
+what `processFund` needs. Run this as the team wallet, which holds the admin roles:
+
+```bash
+PRIVATE_KEY=<team key> bun run grant-fallback-roles -- <fallback address> --dry-run
+PRIVATE_KEY=<team key> bun run grant-fallback-roles -- <fallback address>
+PRIVATE_KEY=<team key> bun run grant-fallback-roles -- <fallback address> --revoke   # if it leaks
+```
+
+| Contract | Root role | Needed for |
+| --- | --- | --- |
+| UserRegistry `0xefC4…9Ac1` | `ROLE_REGISTRAR` (1) | `register(label, creator, …)`; relayer labels are never reserved, so no `REGISTER_RESERVED` |
+| Resolver `0x26E1…9ae2` | `SET_ADDRESS` (1<<0) | Arc-coin-type address in the record multicall |
+| Resolver | `SET_TEXT` (1<<4) | text records in the multicall |
+| Resolver | `LINK` (1<<28) | `linkToNode` (symbol and `latest` links), `linkToRecord` (detach a symbol link) |
+
+These roles carry no admin bits, so the key can't grant roles to anyone. This is the same set the
+CCIP receiver holds. `receiver.retry` is permissionless. Gas measured live on Sepolia
+(2026-11-06, RMT, 3 tokens): register ~630k, 12 records ~3.44M, `latest` link ~40k, so **~4.1M per
+naming**, up to ~7.5M for 10 tokens; a `retry` is about the same. At 1 gwei that's under 0.0075 ETH.
+Sepolia was at ~16 wei. 0.05 Sepolia ETH is plenty.
 
 ## Verify in the ENS app
 
@@ -257,6 +329,9 @@ balance.
 | `src/register-parent.ts` | Commit-reveal registration of `inphinity.eth` via the ETH Registrar, paid in a stablecoin |
 | `src/setup-registry.ts` | UserRegistry + Permissioned Resolver via the Verifiable Factory, attach, reserve labels, default bundle |
 | `src/relayer.ts` | Arc → ENS: register fund names to creators, write records, maintain symbol and `latest` links |
+| `src/fallback.ts`, `src/fallback-decide.ts`, `fallback-loop.sh` | CCIP fallback: name a fund only when its CCIP naming can no longer do it (every 30 min) |
+| `src/grant-fallback-roles.ts` | Grant (or `--revoke`) the fallback key its minimal ENSv2 roles |
+| `test/fallback.test.ts` | Unit tests for the fallback decision logic (`bun test`) |
 | `src/ccip-setup.ts` | Deploy and wire the Chainlink CCIP bridge, `--enable` / `--disable` it on the factory |
 | `../contracts/ccip/` | `ArcEnsRegistrar` (Arc), `InphinityEnsReceiver` (Sepolia), shared label library; compiled into `ccip-artifacts/` |
 | `test/ccip-fork-e2e.ts` | CCIP end-to-end test on Arc + Sepolia forks |

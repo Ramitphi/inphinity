@@ -97,6 +97,18 @@ export const RESOLVER_ADMIN_ROLES = withAdmins([
   ResolverRoles.UPGRADE,
 ]);
 
+/**
+ * Minimal roles for a key that runs the CCIP fallback (src/fallback.ts), i.e. relayer.ts processFund:
+ *  - UserRegistry ROLE_REGISTRAR: register(label, creator, ...). Labels the relayer picks are never
+ *    reserved, so no REGISTER_RESERVED; it never renews, unregisters or changes a resolver.
+ *  - Resolver SET_ADDRESS + SET_TEXT: the record multicall (Arc coin type + text records).
+ *  - Resolver LINK: linkToNode (symbol and `latest` links) and linkToRecord (detach a symbol link).
+ * No admin bits (role << 128), so the key cannot grant roles to anyone. Same set as the CCIP receiver.
+ * receiver.retry(messageId) is permissionless and needs no role.
+ */
+export const FALLBACK_REGISTRY_ROLES = RegistryRoles.REGISTRAR;
+export const FALLBACK_RESOLVER_ROLES = ResolverRoles.SET_ADDRESS | ResolverRoles.SET_TEXT | ResolverRoles.LINK;
+
 /** Resolver EAC resource for a setter argument: keccak256(key) for text, keccak256(uint256) for coin types. */
 export const textKeyResource = (key: string) => BigInt(keccak256(stringToHex(key)));
 export const coinTypeResource = (coinType: bigint) =>
