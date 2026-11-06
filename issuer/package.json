@@ -1,0 +1,26 @@
+{
+  "name": "inphinity-issuer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "tsx --env-file=/home/user/.inphinity/deployer.env scripts/deploy-tokens.ts",
+    "bridge": "tsx --env-file=/home/user/.inphinity/deployer.env scripts/bridge.ts",
+    "typecheck": "tsc --ignoreConfig --noEmit --allowImportingTsExtensions --module esnext --moduleResolution bundler --target esnext --strict --skipLibCheck --types node scripts/*.ts",
+    "setup-exchange": "tsx --env-file=/home/user/.inphinity/deployer.env scripts/setup-exchange.ts",
+    "bridge-all": "tsx --env-file=/home/user/.inphinity/deployer.env scripts/bridge-all.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "viem": "^2.57.16"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
