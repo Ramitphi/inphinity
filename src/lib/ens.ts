@@ -74,3 +74,33 @@ export function useFundEns(fund: Address | undefined, symbol: string | undefined
 export const ensAppUrl = (name: string) => `${ENS_APP}/${name}`
 /** Chainlink CCIP explorer page for the message that created the name. */
 export const ccipMessageUrl = (messageId: string) => `https://ccip.chain.link/msg/${messageId}`
+
+/** Every text record the relayer writes for a fund, in display order. */
+export const PROFILE_KEYS = [
+  'name', 'description', 'url', 'inphinity.symbol', 'inphinity.weights', 'inphinity.tokens', 'inphinity.fee',
+  'inphinity.creator', 'inphinity.chain', 'inphinity.index', 'inphinity.ccip', 'inphinity.disclaimer',
+] as const
+export type EnsProfile = {
+  name: string
+  fund: Address | null // ENSIP-11 Arc Testnet address record
+  resolver: Address | null
+  records: Partial<Record<(typeof PROFILE_KEYS)[number], string>>
+}
+
+/** Reads a fund name's Arc address and all its text records through the ENSv2 Universal Resolver. */
+export async function readEnsProfile(name: string): Promise<EnsProfile> {
+  const [fund, resolver, ...values] = await Promise.all([
+    arcAddressOf(name),
+    client.getEnsResolver({ name, ...ur }).catch(() => null),
+    ...PROFILE_KEYS.map((key) => client.getEnsText({ name, key, ...ur }).catch(() => null)),
+  ])
+  const records: EnsProfile['records'] = {}
+  PROFILE_KEYS.forEach((k, i) => { if (values[i]) records[k] = values[i]! })
+  return { name, fund: (fund as Address | null) ?? null, resolver: (resolver as Address | null) ?? null, records }
+}
+
+export function useEnsProfile(name: string) {
+  return useQuery({ queryKey: ['ens-profile', name], queryFn: () => readEnsProfile(name), staleTime: 60_000 })
+}
+
+export const ensExplorerRecordsUrl = (name: string) => `https://sepolia.explorer.ens.domains/${name}/records`
