@@ -1,6 +1,6 @@
 # Inphinity issuer (Base Sepolia → Arc Testnet via CCTP)
 
-Mock issuer for the Inphinity demo. It issues tokenized Indian stocks (inRELIANCE, inTCS, inINFY) on
+Mock issuer for the Inphinity demo. It issues mock tokenized US stocks (tAAPL, tMSFT, tNVDA, tTSLA, tAMZN, tGOOGL, tMETA, tSPY) on
 **Base Sepolia** as native cross-chain tokens using Circle's **CCTP for non-USDC assets**, then
 bridges them to **Arc Testnet**, where Inphinity's exchange and index funds hold them.
 
@@ -11,7 +11,7 @@ These are testnet mock tokens, not real securities.
 ```bash
 npm install
 npm run deploy                                  # deploy each stock on Base Sepolia and its twin on Arc
-npm run bridge -- inRELIANCE 1000 0xArcAddress  # mint on Base Sepolia and bridge to an Arc address
+npm run bridge -- tAAPL 1000 0xArcAddress  # mint on Base Sepolia and bridge to an Arc address
 ```
 
 The scripts read a testnet-only deployer key from `PRIVATE_KEY` (never commit it). The wallet needs

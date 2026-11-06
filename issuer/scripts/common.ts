@@ -20,11 +20,16 @@ export const arc = createPublicClient({ chain: arcTestnet, transport: http() });
 
 export const ownerBytes = encodePacked(["address"], [account.address]);
 
-// The mock issuer's stocks. 18 decimals, like the Arc contracts expect.
+// The mock issuer's stocks (US tickers, matching Arc Studio's plan). 18 decimals, like the Arc contracts expect.
 export const STOCKS = [
-  { name: "Inphinity Reliance Industries", symbol: "inRELIANCE" },
-  { name: "Inphinity Tata Consultancy Services", symbol: "inTCS" },
-  { name: "Inphinity Infosys", symbol: "inINFY" },
+  { name: "Mock Apple", symbol: "tAAPL" },
+  { name: "Mock Microsoft", symbol: "tMSFT" },
+  { name: "Mock NVIDIA", symbol: "tNVDA" },
+  { name: "Mock Tesla", symbol: "tTSLA" },
+  { name: "Mock Amazon", symbol: "tAMZN" },
+  { name: "Mock Alphabet", symbol: "tGOOGL" },
+  { name: "Mock Meta Platforms", symbol: "tMETA" },
+  { name: "Mock SPDR S&P 500 ETF", symbol: "tSPY" },
 ] as const;
 export const DECIMALS = 18;
 
