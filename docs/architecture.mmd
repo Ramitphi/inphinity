@@ -1,0 +1,53 @@
+%%{init: {"theme": "base", "flowchart": {"curve": "basis", "nodeSpacing": 30, "rankSpacing": 45, "padding": 14, "wrappingWidth": 260}, "themeVariables": {"fontFamily": "Inter, Helvetica, Arial, sans-serif", "fontSize": "18px", "lineColor": "#475569", "edgeLabelBackground": "#FFFFFF", "clusterBkg": "#F8FAFC", "clusterBorder": "#94A3B8"}}}%%
+flowchart LR
+  subgraph LEGEND["Colour = sponsor"]
+    K1["Circle / Arc"]:::circle ~~~ K2["Chainlink"]:::link ~~~ K3["ENS"]:::ens ~~~ K4["other"]:::other
+  end
+
+  subgraph SUPPLY["SUPPLY"]
+    ISS["<b>Issuer</b> · Base Sepolia<br/>mints 16 mock stocks<br/><i>issuer/</i>"]
+    CCTP["<b>Circle CCTPx + Bridge Kit</b><br/>burn on Base → attest<br/>→ mint on Arc"]
+    TOK["<b>Same 16 tokens on Arc</b><br/>same address as on Base<br/>tAAPL … tORCL"]
+  end
+
+  subgraph PRODUCT["PRODUCT · on Arc"]
+    WEB["<b>Web app</b> · <i>src/</i><br/>Indices · Prices · Create<br/>Portfolio · /issuer"]
+    FAC["<b>IndexFactory</b><br/>anyone creates a fund:<br/>stocks, weights, fee"]
+    FUND["<b>IndexFund</b> · one per fund<br/>holds its stocks<br/>invest / redeem at NAV"]
+    EX["<b>StockExchange</b><br/>oracle price ± 0.5%<br/>stock inventory<br/>+ USDC reserve"]
+  end
+
+  subgraph DATA["DATA & IDENTITY"]
+    REG["<b>ArcEnsRegistrar</b><br/>Arc · CCIP sender"]
+    CCIP["<b>Chainlink CCIP</b><br/>Arc → Sepolia"]
+    RCV["<b>InphinityEnsReceiver</b><br/>Sepolia"]
+    ENS["<b>ENSv2 UserRegistry<br/>+ PermissionedResolver</b><br/>name.inphinity.eth<br/>Sepolia"]
+    FB["Fallback relayer<br/><i>ens/src/fallback.ts</i>"]
+    CRE["<b>Chainlink CRE</b><br/>Yahoo prices · median<br/>5% cap · CLI simulate<br/>--broadcast"]
+    FWD["<b>CRE<br/>forwarder</b><br/>Arc"]
+  end
+
+  ISS --> CCTP --> TOK
+  TOK -- "inventory" --> EX
+
+  WEB -- "① create<br/>fund" --> FAC
+  FAC -- deploys --> FUND
+  WEB -- "② invest<br/>USDC" --> FUND
+  FUND <-- "buy / sell" --> EX
+
+  FAC --> REG
+  REG --> CCIP --> RCV -- "④ name<br/>appears" --> ENS
+  FB -. "if CCIP<br/>can't" .-> ENS
+
+  REG ~~~ CRE
+  CRE --> FWD
+  FWD -- "③ prices →<br/>NAV moves" --> EX
+
+  classDef circle fill:#D5F5EE,stroke:#0F766E,stroke-width:2px,color:#0B3B36
+  classDef link fill:#DCE5FC,stroke:#2A4FC4,stroke-width:2px,color:#13265E
+  classDef ens fill:#ECE4FD,stroke:#6D28D9,stroke-width:2px,color:#33106B
+  classDef other fill:#FFFFFF,stroke:#64748B,stroke-width:1.5px,color:#1E293B
+  class CCTP,TOK,FAC,FUND,EX circle
+  class CRE,FWD,CCIP,REG link
+  class RCV,ENS ens
+  class ISS,WEB,FB other

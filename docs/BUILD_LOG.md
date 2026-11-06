@@ -73,6 +73,7 @@ The orchestrator session holds the testnet-only team wallet `0xC658A9Bd5ADE6CCd8
 | 02:20–02:40 (20:50–21:10) | Brainstorms recorded in `DECISIONS.md`: 2a why CCTP burn-and-mint instead of wrapping; 4c custody (the fund contract holds its stocks; no admin withdraw; weights exact only at purchase); 4d bridge = issuer console; feature freeze | [DECISIONS](docs/DECISIONS.md) |
 | 02:59 (21:29) | Merged #30 issuer console + NAV note fix (`ba614c5`) | [PR #30](https://github.com/Ramitphi/inphinity/pull/30) |
 | 03:05 (21:35) | **Arc Studio sync ("sync to arc")**: every file changed on `main` since the 21:35 IST 6 Nov sync (index-only app, plain digits, issuer console, since inception, ENS profile page, 1D change, CCIP fallback, docs) uploaded and verified byte-for-byte. Submission drafts excluded by rule | Studio app `7582b931…` |
+| 03:17 (21:47) | **Public README + architecture diagram**: root `README.md` (pitch, how it works, try it, contracts with explorer links, repo map, run locally, limits) and `docs/ARCHITECTURE.md` with a new top-down diagram (`docs/architecture.mmd`, PNG 3200×2000): supply / product / data & identity rows, coloured by sponsor, numbered user path ①–④, no crossing arrows. Facts re-checked onchain (registrar wired, 0.5% spread, CRE price source on, 16 listed, 8 with inventory) | branch `docs/readme-architecture` |
 
 ## Live addresses
 
@@ -96,4 +97,5 @@ The orchestrator session holds the testnet-only team wallet `0xC658A9Bd5ADE6CCd8
 - [x] Public hosting of the web app: https://inphinity.vercel.app
 - [x] Arc Studio project synced with GitHub `main` (latest: 03:05 IST 7 Nov, after #30)
 - [ ] CCIP fallback: grant the dedicated key its roles, fund it (~0.05 Sepolia ETH), start `ens/fallback-loop.sh` on Ramit's Mac (names RMT and AICHIP on its first run)
-- [ ] README, architecture diagram, demo video, ETHGlobal submission
+- [x] README and architecture diagram (branch `docs/readme-architecture`)
+- [ ] Demo video, ETHGlobal submission
