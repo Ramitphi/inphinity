@@ -64,9 +64,19 @@ The prices have not moved since the deposit yet. The US market opens at 20:00 IS
 
 ### 2.1 Price moves: "what if tNVDA moves +5%?"
 
-A CRE report changes the mid price of each stock. The contract caps each report at **±5%** per stock
-(`maxMoveBps = 500`). If Yahoo shows a bigger jump, the workflow clamps the price to +5% and catches up on
-later runs.
+**How prices arrive.** The Chainlink CRE workflow (`cre/price-feed`, branch `feat/cre`) fetches each stock's
+USD price from Yahoo Finance and takes the median across nodes. It then writes one signed report to
+`StockExchange.onReport`.
+
+- During the demo the workflow runs as a CRE simulation on a timer: `cre/run-loop.sh`, every 5 minutes by default.
+- One run can make at most 15 HTTP calls, but 16 stocks are listed. Each run therefore updates the
+  **15 stalest prices first**, sorted by `updatedAt` with ties kept in listing order. Every stock rotates
+  through within two runs.
+- On the first live report (19:47 IST) tORCL was the one left out. It tied with the 7 other newer stocks and
+  lost the tie-break, so it is first in line for the next run.
+
+The contract caps each report at **±5%** per stock (`maxMoveBps = 500`). If Yahoo shows a bigger jump, the
+workflow clamps the price to ±5% and catches up on later runs.
 
 Suppose tNVDA goes from 181.60 to 190.68 (+5%), and everything else stays flat:
 
@@ -222,13 +232,8 @@ bridged tokens. `investInKind` (depositing the stock yourself) still works. Rede
 reserve (45 USDC today), not stock inventory. The first 8 stocks (tAAPL … tSPY) each have ~10,000 tokens.
 
 **Price cap.** One report can move a stock at most 5%. After a bigger real move (an earnings gap), the
-onchain price walks toward Yahoo in 5% steps, one per report (every 5 minutes in market hours). For a short
+onchain price walks toward Yahoo in 5% steps, one per report (every 5 minutes while the run loop is on). For a short
 while NAV lags reality. This limits the damage from a bad or manipulated feed print.
-
-**Everyone exits.** Supply can never return to 0, because the 1000 dead wei stay. If every real share is
-redeemed, the fund can be left with NAV = 0 (dust holdings that round to 0) while supply is still > 0. A new
-`invest` then reverts with `ZeroNAV`. Sending 1e-6 USDC to the fund revives it. This is a known edge, not hit
-in the demo.
 
 **Holding lock.** Newly minted shares are locked for `holdSeconds` (60 s) before they can be redeemed. The
 exchange exempts registered funds from its own hold, and BCHIP is registered, so a fund can sell right after
@@ -236,7 +241,27 @@ another investor's buy.
 
 ---
 
-## 4. Where NAV shows in the app
+## 4. Known limitations
+
+**A fund can brick after a full exit (low severity).**
+
+- Supply never returns to 0, because the 1000 dead-address wei stay forever.
+- If every real share is redeemed, the leftover holdings are dust, about `balance × 1000 / supply` wei of
+  each stock. `nav()` floors each holding to 0 USDC units, so NAV reads 0 while supply is still above 0.
+- A new `invest` or `investInKind` then reverts with `ZeroNAV` (`_investmentShares` in `IndexFund.sol`).
+- **Workaround:** anyone can send 1e-6 USDC (1 base unit) to the fund. NAV is then above 0 and the next
+  investor is priced normally against that dust; they end up owning almost all shares.
+- **Possible fix later:** treat `assets == 0 && supply > 0` like a fresh fund.
+- There will be no contract change before judging, and the demo does not hit this case.
+
+**Fixed weights, no rebalancing.** Weights apply only to new deposits (section 2.1).
+
+**The exchange is the only venue.** Cash investing depends on the exchange holding stock inventory and
+redemptions depend on its USDC reserve (section 3).
+
+---
+
+## 5. Where NAV shows in the app
 
 - `src/pages/Indices.tsx`: the NAV per share column, plus a fund detail page with NAV per share and supply.
 - `src/pages/Portfolio.tsx`: your value = shares × NAV per share, at mid. Cashing out returns about 0.5% less.
@@ -244,7 +269,7 @@ another investor's buy.
 
 ---
 
-## 5. Pitch line for judges
+## 6. Pitch line for judges
 
 > Every Inphinity fund is an ERC-20 whose NAV is computed onchain from Chainlink CRE stock prices, so anyone
 > can verify what a share is worth at any block. Whoever trades pays the spread: new money is credited only for
