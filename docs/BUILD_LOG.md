@@ -44,6 +44,7 @@ The orchestrator session holds the testnet-only team wallet `0xC658A9Bd5ADE6CCd8
 | ~19:00 (~13:30) | **CCIP bridge (PR #7) deployed and enabled**: ArcEnsRegistrar on Arc, InphinityEnsReceiver on Sepolia | [setRegistrar](https://testnet.arcscan.app/tx/0x0287a3d7813a742c38bacb739e30e1c0af7f09ac1ebda8faf5fea6eda1c9dee8) |
 | ~19:05 (~13:35) | First CCIP naming (`ccipdemo`) **failed on Sepolia: out of gas** (2.5M limit; live Sepolia needs ~4.5–7.5M). Fixed with `setGasLimit(9,000,000)` | [failed exec](https://sepolia.etherscan.io/tx/0xfc64cafbe69a5f1130fdec9e27570572e4b00a05a0caf9a57fc99735fc529b8a), [setGasLimit](https://testnet.arcscan.app/tx/0x8b6bd8e0b6a0f40bc13a4f00dd38788ac7d8218e45baec85e7daf7606022e623) |
 | ~19:10 (~13:40) | Fund **AIBLD** (`aibuilders`) created to retest CCIP naming | [createIndex](https://testnet.arcscan.app/tx/0x8be78a15a78f26199739b43f0d8cfa72f64bf7275fafd8479483c009a8bc4eba) |
+| ~19:25 (~13:55) | **CCIP naming works end to end**: Chainlink delivered the message and `aibuilders.inphinity.eth` resolves on Sepolia to the AIBLD fund on Arc, with weights and fee | [CCIP message](https://ccip.chain.link/msg/0xac8fffdffacd3e1cba6a7597fd9e690fd71e39506c9faee406c6e58aa3f0d53b), [Sepolia exec](https://sepolia.etherscan.io/tx/0x5399b805fa22da85cf294e92d7a1a7468ae45f217fe1e7e99794016c8d284e2a) |
 
 ## Live addresses
 
@@ -60,7 +61,7 @@ The orchestrator session holds the testnet-only team wallet `0xC658A9Bd5ADE6CCd8
 ## Open items (updated as they close)
 
 - [ ] Chainlink CRE: laptop simulation passes, then `setExpectedAuthor` + `setPriceSource(Feed)` and a live `--broadcast` run
-- [ ] CCIP naming retest (`aibuilders`) delivered on Sepolia
+- [x] CCIP naming retest (`aibuilders`) delivered on Sepolia
 - [ ] Public hosting of the web app
 - [ ] Arc Studio project synced with GitHub `main`
 - [ ] README, architecture diagram, demo video, ETHGlobal submission
