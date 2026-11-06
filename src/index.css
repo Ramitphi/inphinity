@@ -5,8 +5,9 @@
 :root {
   --paper: #ffffff; --ink: #0a0a0a; --muted: #6b6b6b; --hair: #d9d9d9; --wash: #f4f4f4;
   --up: #0a8a3a; --down: #d0151b; --upbg: #e8f6ed; --downbg: #fde9ea;
-  --mono: 'IBM Plex Mono', ui-monospace, monospace;
-  --sans: 'IBM Plex Sans Condensed', system-ui, sans-serif;
+  --mono: 'VT323', ui-monospace, monospace;
+  --sans: 'VT323', ui-monospace, monospace;
+  --dot: 'Doto', 'VT323', monospace;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -170,3 +171,49 @@ textarea.txt { width: 100%; border: 1px solid var(--ink); outline: 0; padding: 1
   .steps button { font-size: 11px; padding: 8px 6px; }
   .foot { padding: 10px 16px 64px; }
 }
+
+/* ===== RETRO: VT323 text, Doto headlines, DSEG7 figures, DSEG14 ticker symbols ===== */
+body { font-size: 20px; }
+.mast h1 { font-family: var(--dot); font-weight: 900; font-size: 68px; letter-spacing: .02em; }
+h2.title { font-family: var(--dot); font-weight: 900; font-size: 34px; letter-spacing: .01em; margin-bottom: 6px; }
+.tape-inner { font-size: 18px; letter-spacing: .04em; }
+.tape-item b { font-size: 20px; font-weight: 400; letter-spacing: .06em; -webkit-text-stroke: .5px currentColor; }
+.mast .side, .dateline, .wallet { font-size: 17px; letter-spacing: .04em; }
+.nav a { font-size: 21px; font-weight: 400; letter-spacing: .1em; }
+.sub { font-size: 20px; line-height: 1.2; }
+.eyebrow, .stat, .lbl { font-size: 16px; font-weight: 400; letter-spacing: .06em; }
+.stat b { font-size: 24px; font-weight: 400; }
+.board th { font-size: 16px; font-weight: 400; letter-spacing: .08em; }
+.board td { font-size: 21px; }
+/* Ticker symbols: larger VT323 with a faux-bold stroke so M never reads as N (DSEG14 made S read as 5). */
+.sym { font-size: 25px; font-weight: 400; letter-spacing: .06em; -webkit-text-stroke: .6px currentColor; }
+.name { font-size: 19px; }
+.chg { font-size: 19px; font-weight: 400; }
+.note { font-size: 17px; }
+.btn { font-size: 18px; font-weight: 400; padding: 4px 14px; }
+.btn.sm { font-size: 16px; padding: 2px 8px; }
+.btn.block { font-size: 21px; }
+.seg button { font-size: 22px; font-weight: 400; }
+.box > h3 { font-size: 17px; font-weight: 400; }
+.kv { font-size: 20px; } .kv b { font-size: 20px; font-weight: 400; overflow-wrap: anywhere; }
+.field .unit { font-size: 17px; font-weight: 400; }
+.field input.txt, textarea.txt { font-size: 21px; }
+.steps button { font-size: 20px; font-weight: 400; }
+.wrow .pctin input { font-size: 20px; font-weight: 400; }
+.wrow .pctin span { font-size: 18px; }
+.total { font-size: 21px; font-weight: 400; }
+.tag { font-size: 17px; }
+.foot { font-size: 17px; }
+.info, .alert { font-size: 18px; }
+.wallet, .btn, .seg button, .steps button { -webkit-font-smoothing: none; }
+@media (max-width: 760px) {
+  .mast h1 { font-size: 46px; }
+  h2.title { font-size: 28px; }
+  .nav a { font-size: 19px; padding: 8px 12px; }
+  .board td { font-size: 19px; }
+  .sym { font-size: 22px; }
+  .chg { font-size: 16px; }
+  .dateline { font-size: 15px; }
+  .steps button { font-size: 16px; }
+}
+body { line-height: 1.25; }
