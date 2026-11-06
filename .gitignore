@@ -1,2 +1,7 @@
 .arc-studio/
 node_modules/
+
+# Secrets: never commit env files (templates are fine)
+.env
+.env.*
+!.env.example
