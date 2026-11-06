@@ -283,7 +283,7 @@ function EnsRecords({ ens, fund, checks }: { ens: FundEns; fund: Address; checks
   return (
     <>
       <div style={{ fontWeight: 700, fontSize: 20 }}>
-        <a href={ensAppUrl(ens.name)} target="_blank" rel="noopener noreferrer">{ens.name} ↗</a>
+        <Link to={`/${ens.name}`}>{ens.name}</Link>
       </div>
       {rows.map(([k, v, ok]) => (
         <KV key={k} k={k}><span className="mono">{v ?? '—'}</span> <span className={ok ? 'up' : 'down'}>{ok ? '✓' : '✗'}</span></KV>
