@@ -88,7 +88,9 @@ Expected log lines: one `tXXXX (XXXX): <price> USDC base units` per stock and a 
 
 ### 4. Owner actions on `StockExchange` (orchestrator, owner key)
 
-Current state (read with `bun price-feed/scripts/status.ts`): forwarder = simulation `MockKeystoneForwarder` `0x6E9EE680ef59ef64Aa8C7371279c27E496b5eDc1`, `priceSource = 0` (Admin), no identity set.
+State before setup: forwarder = simulation `MockKeystoneForwarder` `0x6E9EE680ef59ef64Aa8C7371279c27E496b5eDc1`, `priceSource = 0` (Admin), no identity set.
+
+**Current state (2026-11-06, read with `bun price-feed/scripts/status.ts`): setup A is done.** `expectedAuthor = 0xAAAA…AAAA`, `priceSource = 1` (Feed). The owner's `setPrice`/`setPrices` now revert with `WrongPriceSource`; prices change only through reports.
 
 `setPriceSource(1)` reverts with `WorkflowIdentityRequired` unless an expected author or workflow ID is set first.
 
@@ -105,7 +107,7 @@ cast send $EX "setPriceSource(uint8)" 1 --rpc-url $RPC --private-key $OWNER_PK
 
 Do not call `setExpectedWorkflowName` for the simulation setup (the simulator's name encoding is unverified against the contract; a mismatch reverts every report). `setExpectedWorkflowId(0x1111…)` is possible but adds nothing.
 
-> **Security caveat (testnet only):** with the mock forwarder and the placeholder author, anyone who runs a CRE simulation with `--broadcast` against this exchange can push prices. Each update is still bounded by the 5% move cap and the timestamp rules. Acceptable for the hackathon demo; switch to setup B for anything real.
+> **Security caveat (testnet only):** the mock forwarder checks no signatures, and the placeholder author is public. So **any address** can call `report(...)` on the mock forwarder with a hand-made report and move prices. No CRE CLI is needed. (Checked read-only on 2026-11-06 with `eth_estimateGas`: `onReport` accepts a +5% move with author `0xAAAA…` and reverts with `0xBBBB…`.) The 5% cap applies per report, not per day. The only timestamp rule is that each report is newer than the last, so an attacker can repeat it every block and compound the move, then trade against the reserve. Acceptable for the hackathon demo with a small reserve. After judging, roll back (step 9) or switch to setup B.
 
 **B. Deployed workflow (production forwarder)**
 
@@ -188,4 +190,4 @@ bunx cre-compile main.ts /tmp/price-feed.wasm   # optional: the same WASM build 
 
 - **Yahoo Finance is unofficial and unauthenticated.** No service guarantee; it can rate limit. A failed quote is skipped, not fatal. For anything beyond a testnet demo use a licensed data provider.
 - **Simulation-driven updates are a demo setup**, see the security caveat in step 4A.
-- Only the first `maxStocksPerRun` (15) stocks are updated per run.
+- At most `maxStocksPerRun` (15) stocks are updated per run. With more listed, each run picks the 15 with the oldest `updatedAt`, so all stocks rotate through. With the 16 stocks listed today, every stock is refreshed at least every second run, unless its quote fails.
