@@ -7,7 +7,7 @@ import { INCEPTION_TIP, qty, short, sinceInception, ticker, units, usd, parse } 
 import { Link } from '../lib/router'
 import { useTx } from '../lib/tx'
 import { POLL, useFunds, useStocks, useUsdcBalance } from '../hooks/data'
-import { AmountInput, Change, Flash, KV, Lcd, useDebounced, useNow } from '../components/ui'
+import { AmountInput, Change, Flash, KV, Num, useDebounced, useNow } from '../components/ui'
 import { ccipMessageUrl, ensAppUrl, useFundEns, type FundEns } from '../lib/ens'
 
 const chainId = arcTestnet.id
@@ -48,7 +48,7 @@ export function Indices() {
                   <FundEnsName fund={f.address} symbol={f.symbol} name={f.name} />
                 </td>
                 <Flash as="td" className="r" value={f.navPerShare === undefined ? undefined : Number(f.navPerShare)}>
-                  <Link to={`/index/${f.address}`} style={{ textDecoration: 'none' }}><Lcd value={usd(f.navPerShare).replace(/,/g, '')} /></Link>
+                  <Link to={`/index/${f.address}`} style={{ textDecoration: 'none' }}><Num value={usd(f.navPerShare)} /></Link>
                 </Flash>
                 <td className="r" title={INCEPTION_TIP}><Change v={sinceInception(f.navPerShare)} /></td>
                 <td className="r mono hide-sm">${usd(f.nav)}</td>
@@ -116,7 +116,7 @@ function FundView({ fund }: { fund: Address }) {
         <div className="navbig">
           <div>
             <div className="stat">NAV per share</div>
-            <Flash value={nps === undefined ? undefined : Number(nps)} as="div"><Lcd big value={usd(nps).replace(/,/g, '')} /></Flash>
+            <Flash value={nps === undefined ? undefined : Number(nps)} as="div"><Num big value={usd(nps)} /></Flash>
           </div>
           <div title={INCEPTION_TIP}><Change v={sinceInception(nps)} /><div className="stat" style={{ marginTop: 4 }}>since inception</div></div>
           <div className="stat">Fund value<b>${usd(nav)}</b></div>

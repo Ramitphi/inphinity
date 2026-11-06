@@ -4,7 +4,7 @@ import { erc20Abi } from 'viem'
 import { INCEPTION_TIP, qty, sinceInception, ticker, units, usd } from '../lib/format'
 import { Link } from '../lib/router'
 import { POLL, useFunds, useStocks, useUsdcBalance } from '../hooks/data'
-import { Change, Lcd } from '../components/ui'
+import { Change, Num } from '../components/ui'
 
 const E18 = 10n ** 18n
 
@@ -33,7 +33,7 @@ export function Portfolio() {
     <>
       <h2 className="title">Portfolio</h2>
       <div className="navbig">
-        <div><div className="stat">Total value (USDC)</div><Lcd big value={usd(total).replace(/,/g, '')} /></div>
+        <div><div className="stat">Total value (USDC)</div><Num big value={usd(total)} /></div>
         <div className="stat">Cash<b>${usd(usdc.data)}</b></div>
         <div className="stat">Funds<b>${usd(fundVal)}</b></div>
         {stockVal > 0n && <div className="stat">Stocks<b>${usd(stockVal)}</b></div>}
@@ -46,7 +46,7 @@ export function Portfolio() {
           <tbody>{myFunds.map((f) => (
             <tr key={f.address}><td><Link to={`/index/${f.address}`}><b>{f.name}</b> <span className="sym muted" style={{ fontSize: 19 }}>{f.symbol}</span></Link></td>
               <td className="r mono">{qty(f.balance)}</td>
-              <td className="r hide-sm"><Lcd value={usd(f.navPerShare).replace(/,/g, '')} /></td>
+              <td className="r hide-sm"><Num value={usd(f.navPerShare)} /></td>
               <td className="r mono">{usd(((f.balance ?? 0n) * (f.navPerShare ?? 0n)) / E18)}</td>
               <td className="r" title={INCEPTION_TIP}><Change v={sinceInception(f.navPerShare)} /></td>
               <td className="r"><Link className="btn sm" to={`/index/${f.address}`}>Redeem →</Link></td></tr>
@@ -60,7 +60,7 @@ export function Portfolio() {
             <thead><tr><th>Symbol</th><th className="r">Units</th><th className="r hide-sm">Price</th><th className="r">Value</th><th className="r">Since listing</th></tr></thead>
             <tbody>{held.map(({ s, bal }) => (
               <tr key={s.token}><td className="sym">{ticker(s.symbol)}</td><td className="r mono">{units(bal)}</td>
-                <td className="r hide-sm"><Lcd value={usd(s.price).replace(/,/g, '')} /></td>
+                <td className="r hide-sm"><Num value={usd(s.price)} /></td>
                 <td className="r mono">{usd((bal * s.price) / E18)}</td><td className="r"><Change v={s.change} /></td></tr>
             ))}</tbody>
           </table>

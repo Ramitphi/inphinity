@@ -67,11 +67,8 @@ table.board { width: 100%; border-collapse: collapse; }
 .chg.up { background: var(--upbg); } .chg.down { background: var(--downbg); } .chg.flat { background: var(--wash); color: var(--muted); }
 .note { font-size: 13px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
 
-/* LCD: DSEG7 digits with faint unlit "8" ghosts behind them */
-.lcd { font-family: 'DSEG7-Classic', var(--mono); font-weight: 700; position: relative; display: inline-block; letter-spacing: .02em; white-space: nowrap; }
-.lcd::before { content: attr(data-ghost); position: absolute; right: 0; top: 0; color: rgba(0,0,0,.07); pointer-events: none; }
-td .lcd { font-size: 19px; }
-.lcd.big { font-size: 52px; }
+/* Figures: one number style app-wide, set in the NUMBERS block further down */
+.num { display: inline-block; white-space: nowrap; }
 .flash-up { animation: flash-up 1.6s steps(6) 1; }
 .flash-down { animation: flash-down 1.6s steps(6) 1; }
 @keyframes flash-up { 0%,40% { background: var(--up); color: #fff } 100% { background: transparent } }
@@ -100,10 +97,8 @@ td .lcd { font-size: 19px; }
 .seg button.on { background: var(--ink); color: #fff; }
 .field { border: 1px solid var(--ink); display: flex; align-items: center; margin: 6px 0 12px; background: #fff; }
 .field.bad { border-color: var(--down); }
-.field .lcd-wrap { position: relative; flex: 1; min-width: 0; }
-.field .ghost { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font: 700 26px 'DSEG7-Classic', var(--mono); color: rgba(0,0,0,.07); pointer-events: none; white-space: pre; }
-.field input.lcd-input { position: relative; width: 100%; border: 0; outline: 0; padding: 12px 10px; font: 700 26px 'DSEG7-Classic', var(--mono); background: transparent; }
-.field input.lcd-input::placeholder { color: transparent; }
+.field .num-wrap { flex: 1; min-width: 0; }
+.field input.num-input { width: 100%; border: 0; outline: 0; padding: 10px; background: transparent; }
 .field .unit { padding: 0 10px; font: 600 13px var(--mono); color: var(--muted); white-space: nowrap; }
 .field input.txt { border: 0; outline: 0; flex: 1; min-width: 0; padding: 10px; font: 500 17px var(--sans); background: transparent; }
 textarea.txt { width: 100%; border: 1px solid var(--ink); outline: 0; padding: 10px; font: 400 15px var(--sans); resize: vertical; min-height: 80px; }
@@ -160,9 +155,7 @@ textarea.txt { width: 100%; border: 1px solid var(--ink); outline: 0; padding: 1
   .split { grid-template-columns: minmax(0,1fr); }
   .board th, .board td { padding: 9px 5px; }
   .board .hide-sm { display: none; }
-  td .lcd { font-size: 16px; }
   .chg { min-width: 0; font-size: 12px; padding: 2px 4px; }
-  .lcd.big { font-size: 40px; }
   .navbig { gap: 20px; }
   .picker { grid-template-columns: repeat(2, 1fr); }
   .picker button { border-right: 1px solid var(--ink) !important; border-bottom: 1px solid var(--ink) !important; }
@@ -172,7 +165,7 @@ textarea.txt { width: 100%; border: 1px solid var(--ink); outline: 0; padding: 1
   .foot { padding: 10px 16px 64px; }
 }
 
-/* ===== RETRO: VT323 text, Doto headlines, DSEG7 figures, DSEG14 ticker symbols ===== */
+/* ===== RETRO: VT323 text and figures, Doto headlines ===== */
 body { font-size: 20px; }
 .mast h1 { font-family: var(--dot); font-weight: 900; font-size: 68px; letter-spacing: .02em; }
 h2.title { font-family: var(--dot); font-weight: 900; font-size: 34px; letter-spacing: .01em; margin-bottom: 6px; }
@@ -185,7 +178,7 @@ h2.title { font-family: var(--dot); font-weight: 900; font-size: 34px; letter-sp
 .stat b { font-size: 24px; font-weight: 400; }
 .board th { font-size: 16px; font-weight: 400; letter-spacing: .08em; }
 .board td { font-size: 21px; }
-/* Ticker symbols: larger VT323 with a faux-bold stroke so M never reads as N (DSEG14 made S read as 5). */
+/* Ticker symbols: larger VT323 with a faux-bold stroke so M never reads as N. */
 .sym { font-size: 25px; font-weight: 400; letter-spacing: .06em; -webkit-text-stroke: .6px currentColor; }
 .name { font-size: 19px; }
 .chg { font-size: 19px; font-weight: 400; }
@@ -228,12 +221,12 @@ body { line-height: 1.25; }
 }
 body { line-height: 1.3; }
 
-/* Table numbers: VT323, larger, no unlit-segment ghosts ("1" no longer reads as "8"). DSEG7 stays for hero figures. */
-td .lcd { font-family: var(--num); font-weight: 400; font-size: 26px; letter-spacing: .03em; -webkit-text-stroke: .4px currentColor; font-variant-numeric: tabular-nums; }
-td .lcd::before { display: none; }
-/* Hero LCD ghosts: barely-there so they never change how a digit reads */
-.lcd::before { color: rgba(0,0,0,.03); }
-.field .ghost { color: rgba(0,0,0,.05); }
+/* ===== NUMBERS: every figure uses the "Shares out" value style (.stat b): plain VT323, regular weight, tabular.
+   No seven-segment font and no unlit background digits. Only the size changes between table, input and hero. */
+.num, .field input.num-input { font-family: var(--num); font-weight: 400; letter-spacing: 0; font-variant-numeric: tabular-nums; -webkit-text-stroke: 0; }
+td .num { font-size: 26px; }
+.num.big { font-size: 68px; line-height: 1; color: var(--ink); }
+.field input.num-input { font-size: 34px; line-height: 1.1; color: var(--ink); }
 .board td.r, .kv b, .stat b, .tape-inner { font-variant-numeric: tabular-nums; }
 
 /* Minimum sizes for VT323 (it renders ~30% smaller than a normal font at the same px) */
@@ -256,10 +249,10 @@ input::placeholder, textarea::placeholder { color: #767676; opacity: 1; }
 .tape-item b { font-size: 23px; }
 
 @media (max-width: 760px) {
-  td .lcd { font-size: 23px; }
+  td .num { font-size: 23px; }
   .board td { font-size: 20px; }
   .chg { font-size: 18px; }
   .eyebrow, .stat, .lbl, .board th { font-size: 17px; }
   .dateline { font-size: 16px; }
-  .lcd.big { font-size: 44px; }
+  .num.big { font-size: 56px; }
 }

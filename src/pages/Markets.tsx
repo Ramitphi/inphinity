@@ -5,7 +5,7 @@ import { EXCHANGE, exchangeAbi } from '../lib/contracts'
 import { ago, qty, ticker, usd } from '../lib/format'
 import { Link } from '../lib/router'
 import { useFunds, useStocks } from '../hooks/data'
-import { Change, Flash, Lcd, useNow } from '../components/ui'
+import { Change, Flash, Num, useNow } from '../components/ui'
 
 const chainId = arcTestnet.id
 
@@ -55,7 +55,7 @@ export function Prices() {
               <tr key={s.token}>
                 <td className="sym">{sym}</td>
                 <td className="name hide-sm">{s.company}</td>
-                <Flash as="td" className="r" value={Number(s.price)}><Lcd value={usd(s.price).replace(/,/g, '')} /></Flash>
+                <Flash as="td" className="r" value={Number(s.price)}><Num value={usd(s.price)} /></Flash>
                 <td className="r"><Change v={s.dayChange} /></td>
                 <td className="r hide-sm"><Change v={s.change} /></td>
                 <td className="r mono hide-sm">{s.inventory === undefined ? '—' : qty(s.inventory, 0)}</td>
