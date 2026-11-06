@@ -34,7 +34,7 @@ export const STOCKS = [
 export const DECIMALS = 18;
 
 const STATE = new URL("../deployments.json", import.meta.url);
-export type TokenRecord = { symbol: string; name: string; tokenId: `0x${string}`; baseToken: `0x${string}`; arcToken: `0x${string}` };
+export type TokenRecord = { symbol: string; name: string; tokenId: `0x${string}`; baseToken: `0x${string}`; arcToken: `0x${string}`; remoteSent?: boolean };
 export function loadState(): Record<string, TokenRecord> {
   return existsSync(STATE) ? JSON.parse(readFileSync(STATE, "utf8")) : {};
 }

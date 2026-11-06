@@ -1,0 +1,66 @@
+{
+  "tAAPL": {
+    "symbol": "tAAPL",
+    "name": "Mock Apple",
+    "tokenId": "0x1b74494bb815db7ea0cf94909db07a2ec21f109fae6fbd3276f31b0d72092ef4",
+    "baseToken": "0x0000000000000000000000000000000000000000",
+    "arcToken": "0x0000000000000000000000000000000000000000",
+    "remoteSent": true
+  },
+  "tMSFT": {
+    "symbol": "tMSFT",
+    "name": "Mock Microsoft",
+    "tokenId": "0x39afcc0d3dd1bf27fb4fc1c9a717612a0a5e2324224f6954e2b6558da0033c64",
+    "baseToken": "0x0000000000000000000000000000000000000000",
+    "arcToken": "0x0000000000000000000000000000000000000000",
+    "remoteSent": true
+  },
+  "tNVDA": {
+    "symbol": "tNVDA",
+    "name": "Mock NVIDIA",
+    "tokenId": "0x9ab5edaaea24e9523d025fcdafb9ebd33c8c5ff8d37864a4b379e8fba2d69eba",
+    "baseToken": "0x0000000000000000000000000000000000000000",
+    "arcToken": "0x0000000000000000000000000000000000000000",
+    "remoteSent": true
+  },
+  "tTSLA": {
+    "symbol": "tTSLA",
+    "name": "Mock Tesla",
+    "tokenId": "0xe42e7f910eb5f821cc627e741cd5b65a8e6220e5e4066867e4496c6de413090d",
+    "baseToken": "0x0000000000000000000000000000000000000000",
+    "arcToken": "0x0000000000000000000000000000000000000000",
+    "remoteSent": true
+  },
+  "tAMZN": {
+    "symbol": "tAMZN",
+    "name": "Mock Amazon",
+    "tokenId": "0x10b72a0de5d4c460fc4fe05ddb4ddb6e3985a98dc051ac8a2e363f9ef7573e40",
+    "baseToken": "0x0000000000000000000000000000000000000000",
+    "arcToken": "0x0000000000000000000000000000000000000000",
+    "remoteSent": true
+  },
+  "tGOOGL": {
+    "symbol": "tGOOGL",
+    "name": "Mock Alphabet",
+    "tokenId": "0x86d53a65b0623b4c2f7361b46582d6c94648290396c6c849bf1aea92894ad976",
+    "baseToken": "0x0000000000000000000000000000000000000000",
+    "arcToken": "0x0000000000000000000000000000000000000000",
+    "remoteSent": true
+  },
+  "tMETA": {
+    "symbol": "tMETA",
+    "name": "Mock Meta Platforms",
+    "tokenId": "0x43fd17f5b0e844c7ad50469e85ec4ff286dd2d8239251951ab7fdbe3c209bcad",
+    "baseToken": "0x0000000000000000000000000000000000000000",
+    "arcToken": "0x0000000000000000000000000000000000000000",
+    "remoteSent": true
+  },
+  "tSPY": {
+    "symbol": "tSPY",
+    "name": "Mock SPDR S&P 500 ETF",
+    "tokenId": "0xc91fad91315f1e16ddd6862f0789bf60e4fe0ab9c81b556719568575b7c52d8d",
+    "baseToken": "0x0000000000000000000000000000000000000000",
+    "arcToken": "0x0000000000000000000000000000000000000000",
+    "remoteSent": true
+  }
+}

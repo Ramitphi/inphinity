@@ -11,6 +11,10 @@ if (!symbol || !amountStr) throw new Error("Usage: bridge.ts <SYMBOL> <amount> [
 const rec = loadState()[symbol];
 if (!rec?.arcToken || rec.arcToken === zeroAddress) throw new Error(`${symbol} is not deployed on both chains yet`);
 const recipient = (recipientArg ?? account.address) as `0x${string}`;
+// The deploy event can report a zero address, so always resolve the Base token from the service.
+if (rec.baseToken === zeroAddress) {
+  rec.baseToken = await base.readContract({ address: CCTS, abi: cctsAbi, functionName: "resolveTokenAddress", args: [rec.tokenId] });
+}
 const amount = parseUnits(amountStr, DECIMALS);
 
 const wait = async (hash: `0x${string}`, what: string) => {

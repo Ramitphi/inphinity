@@ -20,7 +20,8 @@ const state = loadState();
 console.log("Issuer:", account.address);
 
 for (const s of STOCKS) {
-  if (state[s.symbol]?.arcToken) { console.log(`${s.symbol}: already deployed`); continue; }
+  if (state[s.symbol]?.arcToken && state[s.symbol].arcToken !== zeroAddress) { console.log(`${s.symbol}: already deployed`); continue; }
+  if (state[s.symbol]?.tokenId && state[s.symbol].arcToken === zeroAddress && state[s.symbol].remoteSent) { continue; }
   const salt = keccak256(toBytes(`inphinity-${s.symbol}-v1`));
 
   // 1. Home deploy on Base Sepolia.
@@ -36,7 +37,8 @@ for (const s of STOCKS) {
     const claimed = parseEventLogs({ abi: cctsAbi, eventName: "CrossChainTokenIdClaimed", logs: receipt.logs })[0];
     if (!claimed) throw new Error("Missing CrossChainTokenIdClaimed");
     tokenId = claimed.args.tokenId;
-    baseToken = claimed.args.tokenAddress;
+    // The event's tokenAddress can be zero; resolve the real Base address from the service.
+    baseToken = await base.readContract({ address: CCTS, abi: cctsAbi, functionName: "resolveTokenAddress", args: [tokenId] });
     state[s.symbol] = { symbol: s.symbol, name: s.name, tokenId, baseToken, arcToken: zeroAddress };
     saveState(state);
     console.log(`${s.symbol}: Base token ${baseToken} (tx https://sepolia.basescan.org/tx/${hash})`);
@@ -56,19 +58,26 @@ for (const s of STOCKS) {
   if ((await base.waitForTransactionReceipt({ hash: remoteHash })).status !== "success") {
     throw new Error(`${s.symbol} remote deploy reverted: ${remoteHash}`);
   }
-  console.log(`${s.symbol}: remote deploy sent, waiting for Arc…`);
+  state[s.symbol] = { ...state[s.symbol], remoteSent: true };
+  saveState(state);
+  console.log(`${s.symbol}: remote deploy sent (https://sepolia.basescan.org/tx/${remoteHash})`);
+}
 
-  // 3. Wait until the Arc twin exists (usually a few minutes).
+// 3. Wait until every Arc twin exists (Circle relays each one, usually within minutes).
+const deadline = Date.now() + 30 * 60_000;
+for (const s of STOCKS) {
+  const rec = state[s.symbol];
+  if (!rec || rec.arcToken !== zeroAddress) continue;
   let arcToken: `0x${string}` = zeroAddress;
-  const deadline = Date.now() + 20 * 60_000;
   while (arcToken === zeroAddress) {
     if (Date.now() > deadline) throw new Error(`${s.symbol}: timed out waiting for the Arc token`);
-    await sleep(15_000);
     try {
-      arcToken = await arc.readContract({ address: CCTS, abi: cctsAbi, functionName: "resolveTokenAddress", args: [tokenId!] });
+      arcToken = await arc.readContract({ address: CCTS, abi: cctsAbi, functionName: "resolveTokenAddress", args: [rec.tokenId] });
     } catch { arcToken = zeroAddress; }
+    if (arcToken === zeroAddress) await sleep(15_000);
   }
-  state[s.symbol] = { ...state[s.symbol], arcToken };
+  const baseAddr = await base.readContract({ address: CCTS, abi: cctsAbi, functionName: "resolveTokenAddress", args: [rec.tokenId] });
+  state[s.symbol] = { ...rec, baseToken: baseAddr, arcToken };
   saveState(state);
   console.log(`${s.symbol}: Arc token ${arcToken}`);
 }
