@@ -56,7 +56,7 @@ export function Portfolio() {
         <table className="board">
           <thead><tr><th>Fund</th><th className="r">Shares</th><th className="r hide-sm">NAV / share</th><th className="r">Value</th></tr></thead>
           <tbody>{myFunds.map((f) => (
-            <tr key={f.address}><td><Link to={`/index/${f.address}`}><b>{f.name}</b> <span className="sym muted" style={{ fontSize: 13 }}>{f.symbol}</span></Link></td>
+            <tr key={f.address}><td><Link to={`/index/${f.address}`}><b>{f.name}</b> <span className="sym muted" style={{ fontSize: 19 }}>{f.symbol}</span></Link></td>
               <td className="r mono">{qty(f.balance)}</td>
               <td className="r hide-sm"><Lcd value={usd(f.navPerShare).replace(/,/g, '')} /></td>
               <td className="r mono">{usd(((f.balance ?? 0n) * (f.navPerShare ?? 0n)) / E18)}</td></tr>

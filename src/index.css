@@ -218,3 +218,48 @@ h2.title { font-family: var(--dot); font-weight: 900; font-size: 34px; letter-sp
 }
 body { line-height: 1.25; }
 .btn.block { white-space: normal; text-align: center; line-height: 1.15; }
+
+/* ===== READABILITY pass: same retro look, numbers and labels legible at a glance ===== */
+:root {
+  /* AA contrast: muted 6.7:1 on white, 6.0:1 on wash; green 5.4:1 on white, 4.9:1 on its badge tint; red 6.0:1 on its tint */
+  --muted: #5c5c5c; --up: #0a7a33; --down: #c0141a;
+  /* Small numbers: crisp terminal digits instead of 7-segment */
+  --num: 'VT323', ui-monospace, monospace;
+}
+body { line-height: 1.3; }
+
+/* Table numbers: VT323, larger, no unlit-segment ghosts ("1" no longer reads as "8"). DSEG7 stays for hero figures. */
+td .lcd { font-family: var(--num); font-weight: 400; font-size: 26px; letter-spacing: .03em; -webkit-text-stroke: .4px currentColor; font-variant-numeric: tabular-nums; }
+td .lcd::before { display: none; }
+/* Hero LCD ghosts: barely-there so they never change how a digit reads */
+.lcd::before { color: rgba(0,0,0,.03); }
+.field .ghost { color: rgba(0,0,0,.05); }
+.board td.r, .kv b, .stat b, .tape-inner { font-variant-numeric: tabular-nums; }
+
+/* Minimum sizes for VT323 (it renders ~30% smaller than a normal font at the same px) */
+.eyebrow, .stat, .lbl { font-size: 18px; }
+.board th { font-size: 18px; letter-spacing: .06em; }
+.box > h3 { font-size: 19px; letter-spacing: .08em; }
+.name { font-size: 20px; }
+.sub { font-size: 21px; line-height: 1.35; }
+.note { font-size: 18px; line-height: 1.4; }
+.kv { line-height: 1.3; }
+.mast .side, .dateline, .foot { font-size: 18px; }
+.chg { font-size: 20px; }
+.chg.up { color: var(--up); } .chg.down { color: var(--down); }
+.field .unit { font-size: 19px; }
+.btn.sm { font-size: 18px; }
+input::placeholder, textarea::placeholder { color: #767676; opacity: 1; }
+
+/* Ticker tape: bigger, and its speed is set per item in Header.tsx (~40px/s) so it doesn't smear in a recording */
+.tape-inner { font-size: 21px; padding: 8px 0; }
+.tape-item b { font-size: 23px; }
+
+@media (max-width: 760px) {
+  td .lcd { font-size: 23px; }
+  .board td { font-size: 20px; }
+  .chg { font-size: 18px; }
+  .eyebrow, .stat, .lbl, .board th { font-size: 17px; }
+  .dateline { font-size: 16px; }
+  .lcd.big { font-size: 44px; }
+}
