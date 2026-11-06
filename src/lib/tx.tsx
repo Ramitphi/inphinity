@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { usePublicClient, useWriteContract, useAccount } from 'wagmi'
+import { usePublicClient, useWriteContract, useAccount, useSwitchChain } from 'wagmi'
 import { arcTestnet } from 'viem/chains'
 import { erc20Abi, type Abi, type Address, type TransactionReceipt } from 'viem'
 import { EXPLORER } from './contracts'
@@ -21,7 +21,8 @@ const TxLink = ({ hash, text }: { hash: string; text: string }) => (
 export function useTx() {
   const client = usePublicClient({ chainId: arcTestnet.id })
   const { writeContractAsync } = useWriteContract()
-  const { address } = useAccount()
+  const { address, chainId } = useAccount()
+  const { switchChainAsync } = useSwitchChain()
   const [busy, setBusy] = useState<string | null>(null)
 
   async function send(label: string, call: Call): Promise<TransactionReceipt | null> {
@@ -32,6 +33,13 @@ export function useTx() {
     const id = toast.loading(`${label}: confirm in your wallet…`)
     setBusy(label)
     try {
+      // Every app transaction runs on Arc. If the wallet is elsewhere (e.g. Base Sepolia after a bridge),
+      // ask it to switch first instead of failing with a chain-mismatch error.
+      if (chainId !== arcTestnet.id) {
+        toast.loading(`${label}: switch your wallet to Arc Testnet…`, { id })
+        await switchChainAsync({ chainId: arcTestnet.id })
+        toast.loading(`${label}: confirm in your wallet…`, { id })
+      }
       const abi = [...call.abi, ...allErrors] as Abi
       const { request } = await client.simulateContract({ ...call, abi, account: address } as never)
       const hash = await writeContractAsync({ ...(request as object), chainId: arcTestnet.id } as never)
