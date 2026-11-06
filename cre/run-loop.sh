@@ -14,6 +14,7 @@
 #   CRE_BIN    path to the cre binary (default: `cre` on PATH, then ~/.cre/bin/cre)
 #
 # Needs: `cre login` done (or CRE_API_KEY exported) and, for broadcast, CRE_ETH_PRIVATE_KEY in cre/.env.
+# The CLI reads cre/.env; a CRE_ETH_PRIVATE_KEY= line there (even empty) overrides an exported variable.
 # A failed run is logged and the loop carries on; Ctrl-C stops it.
 set -uo pipefail
 
@@ -37,10 +38,15 @@ fi
 
 args=(workflow simulate price-feed --target "$TARGET" --non-interactive --trigger-index 0)
 if [[ "$DRY_RUN" != "1" ]]; then
-  if [[ ! -f .env ]] || ! grep -Eq '^CRE_ETH_PRIVATE_KEY=.+' .env; then
-    if [[ -z "${CRE_ETH_PRIVATE_KEY:-}" ]]; then
-      echo "Broadcast needs CRE_ETH_PRIVATE_KEY (in cre/.env or the environment). Use DRY_RUN=1 for a dry run." >&2; exit 1
+  # The CLI reads cre/.env, and a CRE_ETH_PRIVATE_KEY line there wins over an exported
+  # shell variable, even when it is empty (as copied from .env.example). An empty line
+  # makes the CLI fall back to its unfunded default key, so refuse to start in that case.
+  if [[ -f .env ]] && grep -Eq '^[[:space:]]*CRE_ETH_PRIVATE_KEY=' .env; then
+    if ! grep -Eq '^[[:space:]]*CRE_ETH_PRIVATE_KEY=["'"'"']?0x[0-9a-fA-F]{64}' .env; then
+      echo "cre/.env has an empty or invalid CRE_ETH_PRIVATE_KEY line; it overrides any exported variable. Put the key there (0x + 64 hex) or delete the line." >&2; exit 1
     fi
+  elif [[ -z "${CRE_ETH_PRIVATE_KEY:-}" ]]; then
+    echo "Broadcast needs CRE_ETH_PRIVATE_KEY (in cre/.env or the environment). Use DRY_RUN=1 for a dry run." >&2; exit 1
   fi
   args+=(--broadcast)
 fi

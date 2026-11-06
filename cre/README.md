@@ -52,7 +52,7 @@ All commands from `cre/` unless noted.
   cre version
   ```
 - A CRE account: `cre login` (browser), then `cre whoami`. For headless use, export `CRE_API_KEY` instead.
-- For `--broadcast`: an Arc Testnet wallet with some USDC (USDC is Arc's gas token; each report costs well under 0.01 USDC). Any wallet works: the exchange checks the forwarder and the report metadata, not who paid the gas. Use a throwaway key, not the exchange owner key.
+- For `--broadcast`: an Arc Testnet wallet with some USDC (USDC is Arc's gas token; each 15-stock report costs about 0.007 USDC, measured). Any wallet works: the exchange checks the forwarder and the report metadata, not who paid the gas. Use a throwaway key, not the exchange owner key.
 - Workflow dependencies:
   ```bash
   (cd price-feed && bun install && bun test)
@@ -70,13 +70,21 @@ cp .env.example .env
 | `CRE_ETH_PRIVATE_KEY` | `--broadcast` and `cre workflow deploy` (the wallet that sends the forwarder transaction) |
 | `CRE_API_KEY` | Optional, replaces `cre login` for non-interactive runs |
 
+The CLI loads `cre/.env` itself, and a `CRE_ETH_PRIVATE_KEY=` line there **overrides an exported shell variable, even when it is empty** (as copied from `.env.example`). The CLI then falls back to its built-in, unfunded default key and prints `Using default private key for chain write simulation`. Either fill the line in or delete it. `run-loop.sh` refuses to start with an empty or malformed line.
+
+To create a fresh gas wallet without the key ever appearing on screen (from `cre/`; prints only the address):
+
+```bash
+cd price-feed && bun -e 'import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";import { existsSync, writeFileSync } from "fs";const f="../.env";if (existsSync(f)) { console.log("cre/.env already exists, not touching it"); process.exit(1) };const pk = generatePrivateKey();writeFileSync(f, `CRE_ETH_PRIVATE_KEY=${pk}\n`, { mode: 0o600 });console.log("Gas wallet address:", privateKeyToAccount(pk).address);' ; cd ..
+```
+
 ### 3. Dry-run simulation (no transaction)
 
 ```bash
 cre workflow simulate price-feed --target arc-testnet-settings --non-interactive --trigger-index 0
 ```
 
-Expected log lines: one `tXXXX (XXXX): <price> USDC base units` per stock and a final `Wrote 8 prices (0 skipped)`. `--trigger-index 0` runs the first cron handler once, immediately, whatever the time of day or the cron schedule.
+Expected log lines: one `tXXXX (XXXX): <price> USDC base units` per stock and a final `Wrote 15 prices (0 skipped)`. `--trigger-index 0` runs the first cron handler once, immediately, whatever the time of day or the cron schedule.
 
 ### 4. Owner actions on `StockExchange` (orchestrator, owner key)
 
@@ -119,6 +127,8 @@ cre workflow simulate price-feed --target arc-testnet-settings --non-interactive
 ```
 
 The run ends with `Wrote N prices (M skipped). tx 0x…`. If the exchange is still in Admin mode the transaction succeeds but the exchange emits `ReportIgnored` and prices do not change.
+
+**Verified on Arc Testnet (2026-11-06):** first live report [`0xd2a96bfe…375e`](https://testnet.arcscan.app/tx/0xd2a96bfedcf3733d8da9e38332221142d5996ebf6f8307aa78b9936d5779375e). It was sent by a throwaway gas wallet to the mock forwarder, and its logs contain `PricesUpdated` (15 stocks) and `ReportProcessed`. **Cost: 278,986 gas × 25 gwei = about 0.007 USDC per update** for 15 stocks, so the 5-minute loop costs about 0.08 USDC per hour and 2 USDC lasts about 24 hours.
 
 ### 6. Keep prices live during the demo
 
