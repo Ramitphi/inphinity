@@ -240,6 +240,14 @@ them."
 - **Chainlink:** CRE (prices) plus CCIP (fund names, Arc → Sepolia).
 - **ENS:** ENSv2 fund registry on Sepolia.
 
+### 9a. Submission choices (7 Nov, ~01:00 IST)
+
+- **Three partners:** Arc (Bridge Kit for non-USDC assets), Chainlink (CRE and CCIP; ETHGlobal counts a partner with several tracks once), ENS (Best Use of ENSv2).
+- **Arc track:** Bridge Kit, not "DeFi / Onchain Finance", although that one also fits (tokenized RWA trading). Arc asks teams to name one bounty. Ramit to confirm.
+- **Code links**, one per prize: Arc → `src/lib/bridge.ts#L96` (`kit.bridge`), Chainlink → `ArcEnsRegistrar.sol#L152` (`ccipSend`; CCIP must be in our contracts), ENS → `InphinityEnsReceiver.sol#L119` (`register` with `ROLE_RENEW` only).
+- **Video:** a 3:00 main cut and a 2:10 backup. ETHGlobal rejects videos under 2:00, so the "30-second backup" became a spoken booth pitch.
+- **Honesty rule:** every claim in the submission links to a commit or a transaction. Limits are stated: CRE runs as a simulation with a public placeholder author, CCIP fee ~21.7 USDC, the fallback not yet running, SIPManager has no UI.
+
 ## 10. Open questions and next steps
 
 - **Indian stocks:** NSE prices through CRE, and a licensed issuer or custodian on a home chain.
