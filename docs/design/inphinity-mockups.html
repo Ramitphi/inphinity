@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Inphinity mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #ffffff; --ink: #0a0a0a; --muted: #6b6b6b; --rule: #0a0a0a; --hair: #d9d9d9;
+    --up: #0a8a3a; --down: #d0151b; --upbg: #e8f6ed; --downbg: #fde9ea;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #ececec; color: var(--ink); font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif; }
+  .label { font: 600 12px 'IBM Plex Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 40px auto 10px; max-width: 1100px; padding: 0 16px; }
+  .screen { max-width: 1100px; margin: 0 auto; background: var(--paper); border: 1px solid var(--ink); }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  .up { color: var(--up); } .down { color: var(--down); }
+
+  /* Ticker tape */
+  .tape { background: var(--ink); color: #fff; overflow: hidden; white-space: nowrap; border-bottom: 1px solid var(--ink); }
+  .tape-inner { display: inline-block; padding: 7px 0; animation: tape 40s linear infinite; font: 500 13px 'IBM Plex Mono', monospace; }
+  .tape span { margin: 0 22px; } .tape b { font-weight: 600; margin-right: 8px; }
+  .tape .up { color: #3ddc7a; } .tape .down { color: #ff5a5f; }
+  @keyframes tape { from { transform: translateX(0) } to { transform: translateX(-50%) } }
+
+  /* Masthead */
+  .mast { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; padding: 18px 24px 10px; border-bottom: 3px double var(--ink); }
+  .mast h1 { margin: 0; font-size: 56px; line-height: .9; font-weight: 700; letter-spacing: -.02em; text-align: center; }
+  .mast .side { font: 500 12px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .06em; }
+  .mast .right { text-align: right; }
+  .wallet { display: inline-block; border: 1px solid var(--ink); padding: 6px 10px; font: 600 12px 'IBM Plex Mono', monospace; }
+  .dateline { display: flex; justify-content: space-between; padding: 6px 24px; border-bottom: 1px solid var(--ink); font: 500 12px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .05em; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--down); margin-right: 6px; vertical-align: 1px; }
+  nav { display: flex; border-bottom: 1px solid var(--ink); }
+  nav a { padding: 10px 20px; font-weight: 600; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); text-decoration: none; border-right: 1px solid var(--ink); }
+  nav a.on { background: var(--ink); color: #fff; }
+
+  .body { padding: 20px 24px 28px; }
+  h2 { font-size: 30px; margin: 0 0 2px; font-weight: 700; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 15px; margin-bottom: 16px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .1em; text-align: left; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 8px 8px; }
+  td { padding: 11px 8px; border-bottom: 1px solid var(--hair); font-size: 16px; }
+  th.r, td.r { text-align: right; }
+  .sym { font: 600 16px 'IBM Plex Mono', monospace; }
+  .name { color: var(--muted); font-size: 14px; }
+  .price { font: 600 20px 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  .chg { display: inline-block; min-width: 86px; padding: 3px 6px; font: 600 14px 'IBM Plex Mono', monospace; text-align: right; }
+  .chg.up { background: var(--upbg); } .chg.down { background: var(--downbg); }
+  .flash { animation: flash 1.6s ease-out 1; }
+  @keyframes flash { 0% { background: var(--up); color: #fff } 100% { background: transparent } }
+  .btn { display: inline-block; border: 1px solid var(--ink); background: #fff; color: var(--ink); padding: 6px 14px; font: 600 13px 'IBM Plex Sans Condensed', sans-serif; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+  .btn.solid { background: var(--ink); color: #fff; }
+  .btn.buy { border-color: var(--up); color: var(--up); } .btn.sell { border-color: var(--down); color: var(--down); }
+  .spark { width: 90px; height: 24px; }
+
+  .split { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; }
+  .box { border: 1px solid var(--ink); }
+  .box h3 { margin: 0; padding: 8px 12px; border-bottom: 1px solid var(--ink); font: 600 12px 'IBM Plex Mono', monospace; letter-spacing: .1em; text-transform: uppercase; }
+  .box .in { padding: 14px 12px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--ink); }
+  .seg div { padding: 9px; text-align: center; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+  .seg .on { background: var(--ink); color: #fff; }
+  .field { border: 1px solid var(--ink); display: flex; align-items: center; margin: 6px 0 12px; }
+  .field input { border: 0; outline: 0; flex: 1; padding: 10px; font: 600 22px 'IBM Plex Mono', monospace; background: transparent; }
+  .field span { padding: 0 10px; font: 600 13px 'IBM Plex Mono', monospace; color: var(--muted); }
+  .kv { display: flex; justify-content: space-between; padding: 5px 0; font-size: 15px; border-bottom: 1px dotted var(--hair); }
+  .kv b { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+  .note { font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+  .navbig { display: flex; gap: 32px; align-items: baseline; margin: 6px 0 18px; padding-bottom: 14px; border-bottom: 1px solid var(--ink); flex-wrap: nowrap; }
+  .navbig .v { font: 600 52px 'IBM Plex Mono', monospace; letter-spacing: -.02em; }
+  .stat { font: 500 12px 'IBM Plex Mono', monospace; text-transform: uppercase; color: var(--muted); letter-spacing: .08em; }
+  .stat b { display: block; color: var(--ink); font-size: 18px; letter-spacing: 0; margin-top: 2px; }
+  .bar { height: 10px; background: var(--ink); }
+  .ens { display: inline-block; border: 1px solid var(--ink); padding: 2px 8px; font: 600 13px 'IBM Plex Mono', monospace; }
+
+  .steps { display: flex; border: 1px solid var(--ink); margin-bottom: 18px; }
+  .steps div { flex: 1; padding: 10px 12px; border-right: 1px solid var(--ink); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: 14px; }
+  .steps div:last-child { border-right: 0; }
+  .steps .on { background: var(--ink); color: #fff; } .steps .done { color: var(--muted); text-decoration: line-through; }
+  .pick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 1px solid var(--ink); border-left: 1px solid var(--ink); margin-bottom: 18px; }
+  .pick > div { border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 10px; }
+  .pick .sel { background: var(--ink); color: #fff; }
+  .pick .sel .name { color: #bbb; }
+  .wrow { display: grid; grid-template-columns: 90px 1fr 90px; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--hair); }
+  .slider { height: 6px; background: var(--hair); position: relative; }
+  .slider i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink); }
+  .slider em { position: absolute; top: -6px; width: 2px; height: 18px; background: var(--ink); }
+  .total { display: flex; justify-content: space-between; padding: 10px 0; font: 600 16px 'IBM Plex Mono', monospace; border-top: 2px solid var(--ink); margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<!-- ============ SCREEN 1: MARKETS ============ -->
+<div class="label">Screen 1 · Markets</div>
+<div class="screen">
+  <div class="tape"><div class="tape-inner">
+    <span><b>AAPL</b>344.17 <em class="up">▲0.42%</em></span><span><b>MSFT</b>535.93 <em class="down">▼0.18%</em></span><span><b>NVDA</b>181.60 <em class="up">▲1.27%</em></span><span><b>TSLA</b>343.69 <em class="down">▼2.05%</em></span><span><b>AMZN</b>260.21 <em class="up">▲0.33%</em></span><span><b>GOOGL</b>282.57 <em class="up">▲0.61%</em></span><span><b>META</b>605.08 <em class="down">▼0.47%</em></span><span><b>SPY</b>733.00 <em class="up">▲0.12%</em></span><span><b>BLUECHIP NAV</b>10.42 <em class="up">▲0.38%</em></span>
+    <span><b>AAPL</b>344.17 <em class="up">▲0.42%</em></span><span><b>MSFT</b>535.93 <em class="down">▼0.18%</em></span><span><b>NVDA</b>181.60 <em class="up">▲1.27%</em></span><span><b>TSLA</b>343.69 <em class="down">▼2.05%</em></span><span><b>AMZN</b>260.21 <em class="up">▲0.33%</em></span><span><b>GOOGL</b>282.57 <em class="up">▲0.61%</em></span><span><b>META</b>605.08 <em class="down">▼0.47%</em></span><span><b>SPY</b>733.00 <em class="up">▲0.12%</em></span><span><b>BLUECHIP NAV</b>10.42 <em class="up">▲0.38%</em></span>
+  </div></div>
+  <div class="mast">
+    <div class="side">Tokenized stocks<br/>&amp; indices, in USDC</div>
+    <h1>INPHINITY</h1>
+    <div class="side right"><span class="wallet">0xC658…4C93 · 248.50 USDC</span></div>
+  </div>
+  <div class="dateline">
+    <span>Friday, 6 November 2026</span>
+    <span><i class="dot"></i>NYSE closed · opens 20:00 IST</span>
+    <span>Prices: Chainlink · Arc Testnet</span>
+  </div>
+  <nav><a class="on">Markets</a><a>Indices</a><a>Create index</a><a>Portfolio</a><a>Bridge from Base</a></nav>
+  <div class="body">
+    <h2>The Board</h2>
+    <div class="sub">Eight stocks issued on Base, bridged to Arc with Circle CCTP. Buy and sell in USDC, 24/7.</div>
+    <table>
+      <thead><tr><th>Symbol</th><th>Company</th><th class="r">Last (USDC)</th><th class="r">Change</th><th class="r">Today</th><th class="r">Available</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr><td class="sym">AAPL</td><td class="name">Apple Inc.</td><td class="r price">344.17</td><td class="r"><span class="chg up">▲ +0.42%</span></td><td class="r"><svg class="spark" viewBox="0 0 90 24"><polyline fill="none" stroke="#0a8a3a" stroke-width="1.5" points="0,18 12,16 24,17 36,12 48,13 60,9 72,10 90,6"/></svg></td><td class="r mono">10,000</td><td class="r"><span class="btn buy">Buy</span> <span class="btn sell">Sell</span></td></tr>
+        <tr><td class="sym">MSFT</td><td class="name">Microsoft Corp.</td><td class="r price">535.93</td><td class="r"><span class="chg down">▼ −0.18%</span></td><td class="r"><svg class="spark" viewBox="0 0 90 24"><polyline fill="none" stroke="#d0151b" stroke-width="1.5" points="0,8 12,9 24,7 36,11 48,10 60,13 72,12 90,14"/></svg></td><td class="r mono">10,000</td><td class="r"><span class="btn buy">Buy</span> <span class="btn sell">Sell</span></td></tr>
+        <tr><td class="sym">NVDA</td><td class="name">NVIDIA Corp.</td><td class="r price flash">181.60</td><td class="r"><span class="chg up">▲ +1.27%</span></td><td class="r"><svg class="spark" viewBox="0 0 90 24"><polyline fill="none" stroke="#0a8a3a" stroke-width="1.5" points="0,20 12,19 24,15 36,16 48,11 60,8 72,7 90,3"/></svg></td><td class="r mono">9,982</td><td class="r"><span class="btn buy">Buy</span> <span class="btn sell">Sell</span></td></tr>
+        <tr><td class="sym">TSLA</td><td class="name">Tesla Inc.</td><td class="r price">343.69</td><td class="r"><span class="chg down">▼ −2.05%</span></td><td class="r"><svg class="spark" viewBox="0 0 90 24"><polyline fill="none" stroke="#d0151b" stroke-width="1.5" points="0,4 12,6 24,9 36,8 48,13 60,15 72,18 90,20"/></svg></td><td class="r mono">10,000</td><td class="r"><span class="btn buy">Buy</span> <span class="btn sell">Sell</span></td></tr>
+        <tr><td class="sym">AMZN</td><td class="name">Amazon.com Inc.</td><td class="r price">260.21</td><td class="r"><span class="chg up">▲ +0.33%</span></td><td class="r"><svg class="spark" viewBox="0 0 90 24"><polyline fill="none" stroke="#0a8a3a" stroke-width="1.5" points="0,14 12,15 24,13 36,14 48,11 60,12 72,10 90,9"/></svg></td><td class="r mono">10,000</td><td class="r"><span class="btn buy">Buy</span> <span class="btn sell">Sell</span></td></tr>
+        <tr><td class="sym">SPY</td><td class="name">SPDR S&amp;P 500 ETF</td><td class="r price">733.00</td><td class="r"><span class="chg up">▲ +0.12%</span></td><td class="r"><svg class="spark" viewBox="0 0 90 24"><polyline fill="none" stroke="#0a8a3a" stroke-width="1.5" points="0,13 12,12 24,13 36,11 48,12 60,10 72,11 90,10"/></svg></td><td class="r mono">10,000</td><td class="r"><span class="btn buy">Buy</span> <span class="btn sell">Sell</span></td></tr>
+      </tbody>
+    </table>
+    <div class="note">Spread 0.5% each way · NYSE closed: last close shown, trading stays open · Not real securities, testnet demo.</div>
+  </div>
+</div>
+
+<!-- ============ SCREEN 2: INDEX DETAIL ============ -->
+<div class="label">Screen 2 · Index detail (invest / redeem)</div>
+<div class="screen">
+  <div class="mast">
+    <div class="side">Tokenized stocks<br/>&amp; indices, in USDC</div>
+    <h1>INPHINITY</h1>
+    <div class="side right"><span class="wallet">0xC658…4C93 · 248.50 USDC</span></div>
+  </div>
+  <nav><a>Markets</a><a class="on">Indices</a><a>Create index</a><a>Portfolio</a><a>Bridge from Base</a></nav>
+  <div class="body">
+    <div class="split">
+      <div>
+        <div class="stat">Index · created by 0x8f2a…19c0</div>
+        <h2>Big Tech Bluechip <span class="mono" style="font-size:18px;color:#6b6b6b">BCHIP</span></h2>
+        <div style="margin:6px 0 4px"><span class="ens">bluechip.inphinity.eth</span></div>
+        <div class="navbig">
+          <div><div class="stat">NAV per share</div><div class="v">10.42</div></div>
+          <div><span class="chg up" style="font-size:18px">▲ +0.38%</span></div>
+          <div class="stat">Fund value<b>$12,480.33</b></div>
+          <div class="stat">Fee<b>1.00% / yr</b></div>
+          <div class="stat">Investors<b>14</b></div>
+        </div>
+        <table>
+          <thead><tr><th>Holding</th><th class="r">Target</th><th class="r">Units</th><th class="r">Value</th><th class="r">Change</th></tr></thead>
+          <tbody>
+            <tr><td><span class="sym">AAPL</span> <span class="name">Apple</span></td><td class="r mono">30%</td><td class="r mono">10.879</td><td class="r mono">3,744.20</td><td class="r"><span class="chg up">▲ +0.42%</span></td></tr>
+            <tr><td><span class="sym">MSFT</span> <span class="name">Microsoft</span></td><td class="r mono">25%</td><td class="r mono">5.822</td><td class="r mono">3,120.08</td><td class="r"><span class="chg down">▼ −0.18%</span></td></tr>
+            <tr><td><span class="sym">NVDA</span> <span class="name">NVIDIA</span></td><td class="r mono">25%</td><td class="r mono">17.181</td><td class="r mono">3,120.08</td><td class="r"><span class="chg up">▲ +1.27%</span></td></tr>
+            <tr><td><span class="sym">GOOGL</span> <span class="name">Alphabet</span></td><td class="r mono">20%</td><td class="r mono">8.834</td><td class="r mono">2,495.97</td><td class="r"><span class="chg up">▲ +0.61%</span></td></tr>
+          </tbody>
+        </table>
+        <div style="display:flex;height:10px;margin-top:14px;border:1px solid #0a0a0a"><div style="width:30%;background:#0a0a0a"></div><div style="width:25%;background:#555"></div><div style="width:25%;background:#999"></div><div style="width:20%;background:#ccc"></div></div>
+      </div>
+      <div>
+        <div class="box">
+          <div class="seg"><div class="on">Invest</div><div>Redeem</div></div>
+          <div class="in">
+            <div class="stat">You pay</div>
+            <div class="field"><input value="100.00" /><span>USDC</span></div>
+            <div class="kv"><span>You receive</span><b>9.55 BCHIP</b></div>
+            <div class="kv"><span>NAV per share</span><b>10.42</b></div>
+            <div class="kv"><span>Trading cost (spread)</span><b>0.50</b></div>
+            <div class="kv"><span>Bought for you</span><b>AAPL · MSFT · NVDA · GOOGL</b></div>
+            <div style="margin-top:14px"><span class="btn solid" style="width:100%;text-align:center;padding:12px">Approve &amp; invest</span></div>
+            <div class="note">The fund buys each stock at its target weight from the exchange, priced by Chainlink. New shares can be redeemed after 60 seconds.</div>
+          </div>
+        </div>
+        <div class="box" style="margin-top:16px">
+          <h3>Your position</h3>
+          <div class="in">
+            <div class="kv"><span>Shares</span><b>24.10 BCHIP</b></div>
+            <div class="kv"><span>Value</span><b>$251.12</b></div>
+            <div class="kv"><span>Return</span><b class="up">▲ +$4.71</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SCREEN 3: CREATE INDEX ============ -->
+<div class="label">Screen 3 · Create an index</div>
+<div class="screen">
+  <div class="mast">
+    <div class="side">Tokenized stocks<br/>&amp; indices, in USDC</div>
+    <h1>INPHINITY</h1>
+    <div class="side right"><span class="wallet">0xC658…4C93 · 248.50 USDC</span></div>
+  </div>
+  <nav><a>Markets</a><a>Indices</a><a class="on">Create index</a><a>Portfolio</a><a>Bridge from Base</a></nav>
+  <div class="body">
+    <h2>Build your own index</h2>
+    <div class="sub">Pick 2–10 stocks, set the weights, choose your fee. Anyone can invest at NAV.</div>
+    <div class="steps"><div class="done">1 · Name</div><div class="on">2 · Stocks &amp; weights</div><div>3 · Fee &amp; review</div></div>
+    <div class="pick">
+      <div class="sel"><div class="sym">AAPL</div><div class="name">Apple Inc.</div></div>
+      <div class="sel"><div class="sym">MSFT</div><div class="name">Microsoft Corp.</div></div>
+      <div class="sel"><div class="sym">NVDA</div><div class="name">NVIDIA Corp.</div></div>
+      <div><div class="sym">TSLA</div><div class="name">Tesla Inc.</div></div>
+      <div><div class="sym">AMZN</div><div class="name">Amazon.com Inc.</div></div>
+      <div class="sel"><div class="sym">GOOGL</div><div class="name">Alphabet Inc.</div></div>
+      <div><div class="sym">META</div><div class="name">Meta Platforms</div></div>
+      <div><div class="sym">SPY</div><div class="name">S&amp;P 500 ETF</div></div>
+    </div>
+    <div class="split">
+      <div>
+        <div class="wrow"><span class="sym">AAPL</span><div class="slider"><i style="width:30%"></i><em style="left:30%"></em></div><span class="r mono" style="text-align:right">30.00%</span></div>
+        <div class="wrow"><span class="sym">MSFT</span><div class="slider"><i style="width:25%"></i><em style="left:25%"></em></div><span class="mono" style="text-align:right">25.00%</span></div>
+        <div class="wrow"><span class="sym">NVDA</span><div class="slider"><i style="width:25%"></i><em style="left:25%"></em></div><span class="mono" style="text-align:right">25.00%</span></div>
+        <div class="wrow"><span class="sym">GOOGL</span><div class="slider"><i style="width:20%"></i><em style="left:20%"></em></div><span class="mono" style="text-align:right">20.00%</span></div>
+        <div class="total"><span>TOTAL</span><span class="up">100.00% ✓</span></div>
+        <div style="margin-top:10px"><span class="btn">Split equally</span> <span class="btn">Back</span> <span class="btn solid">Next: fee &amp; review →</span></div>
+      </div>
+      <div class="box">
+        <h3>Preview</h3>
+        <div class="in">
+          <div class="kv"><span>Name</span><b>Big Tech Bluechip</b></div>
+          <div class="kv"><span>Symbol</span><b>BCHIP</b></div>
+          <div class="kv"><span>ENS name</span><b>bluechip.inphinity.eth</b></div>
+          <div class="kv"><span>Starting NAV</span><b>10.00 USDC</b></div>
+          <div class="kv"><span>Blended 1-day change</span><b class="up">▲ +0.51%</b></div>
+          <div class="note">Weights are fixed once created. You earn your management fee as new shares, up to 2% a year.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div style="height:40px"></div>
+</body>
+</html>
