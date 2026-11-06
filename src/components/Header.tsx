@@ -32,9 +32,10 @@ function Tape() {
 
 function Wallet() {
   const { chainId, isConnected } = useAccount()
+  const onBridge = usePath().startsWith('/bridge')
   const { switchChain, isPending } = useSwitchChain()
   const bal = useUsdcBalance()
-  const wrong = isConnected && chainId !== arcTestnet.id
+  const wrong = isConnected && chainId !== arcTestnet.id && !onBridge // the bridge page runs on Base Sepolia
   return (
     <>
       {wrong && (
