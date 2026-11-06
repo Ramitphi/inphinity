@@ -47,6 +47,7 @@ This is the **project memory** - what Arc Studio remembers about building this a
   4. Verify each uploaded file byte-for-byte with `arc-studio cat`, and report what was synced.
   Skip PNG screenshots and `.env*` files (the CLI refuses them). Check `arc-studio usage --json` first.
 - Brainstorms that change the product (what to build, what to cut, how something is measured) always go into `docs/DECISIONS.md`, so Studio holds the reasoning, not only the code.
+- **Submission material is private for now:** `docs/SUBMISSION.md` and `docs/VIDEO_SCRIPT.md` (and anything else drafted for the ETHGlobal form) live only on branch `docs/submission`. Never merge them into `main`, never include them in a "sync to arc", and never paste their contents into public PRs, until Ramit says so.
 
 ## To Run
 
