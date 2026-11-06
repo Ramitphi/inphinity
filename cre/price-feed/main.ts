@@ -62,7 +62,7 @@ export const configSchema = z.object({
   readBlock: z.enum(["latest", "finalized"]).default("latest"),
   yahoo: z.object({
     /** Chart endpoint base, the ticker is appended: {baseUrl}/AAPL */
-    baseUrl: z.string().url().default("https://query1.finance.yahoo.com/v8/finance/chart"),
+    baseUrl: z.string().regex(/^https:\/\/[^\s]+$/, "must be an https URL").default("https://query1.finance.yahoo.com/v8/finance/chart"),
     /** Per-request timeout, e.g. "8s" (the platform maximum is 10s). */
     requestTimeout: z.string().default("8s"),
     /** If > 0, nodes may share one cached response up to this many seconds old (max 600). 0 = every node fetches its own. */
