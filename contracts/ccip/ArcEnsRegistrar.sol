@@ -29,8 +29,10 @@ contract ArcEnsRegistrar is IIndexRegistrar, Ownable2Step {
 
     /// @notice InphinityEnsReceiver on Sepolia.
     address public receiver;
-    /// @notice Gas limit for `ccipReceive` on Sepolia (register + ~12 records + links uses ~1.3M).
-    uint256 public gasLimit = 2_500_000;
+    /// @notice Gas limit for `ccipReceive` on Sepolia. Live Sepolia storage writes cost several
+    /// times what a local fork shows (~384k gas for one new text record), so naming a fund uses
+    /// ~4.5M (3 tokens) to ~7.5M gas (10 tokens, long names). 2.5M failed live; the lane allows ~14.36M.
+    uint256 public gasLimit = 9_000_000;
 
     event ReceiverUpdated(address receiver);
     event GasLimitUpdated(uint256 gasLimit);

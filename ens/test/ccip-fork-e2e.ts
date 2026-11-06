@@ -114,7 +114,7 @@ console.log("2. Sepolia: deliver it as the CCIP router");
 const messageId = req!.args.messageId as Hex;
 const d = await deliver(messageId, payload);
 const named = d.logs?.find((l) => l.eventName === "FundNamed");
-check(!!named, `FundNamed ${named?.args.name} (gas ${d.rc?.gasUsed}, limit 2,500,000)`);
+check(!!named, `FundNamed ${named?.args.name} (gas ${d.rc?.gasUsed}, limit 9,000,000; fork gas is far below live Sepolia gas)`);
 const name = `${label}.inphinity.eth`;
 check((await arcAddr(name))?.toLowerCase() === a.fund.toLowerCase(), `${name} -> fund via Universal Resolver`);
 check((await text(name, "inphinity.ccip")) === messageId, "inphinity.ccip = CCIP message id");

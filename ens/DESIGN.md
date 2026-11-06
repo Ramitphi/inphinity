@@ -111,6 +111,9 @@ bridges the gap offchain. CCIP mode makes it onchain:
 - ENSv2 access control is what makes this safe. The receiver holds exactly `ROLE_REGISTRAR` on our
   UserRegistry and `SET_ADDRESS | SET_TEXT | LINK` on the resolver, nothing else. Revoking those
   roles stops it instantly.
+- Gas is sized from live Sepolia, not a fork. Live storage writes cost several times more, and naming
+  a fund takes ~4.5M to ~7.5M gas, so messages request 9M. A message that still fails can be
+  manually re-executed with more gas from ccip.chain.link.
 - Naming never blocks a fund: the Arc side never reverts. A failed Sepolia step is stored and can
   be retried, and `IndexFactory.setRegistrar(0)` turns the whole path off.
 

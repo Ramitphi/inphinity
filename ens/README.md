@@ -143,8 +143,45 @@ Keep the relayer as a backup if you like (`bun run relayer -- --once` now and th
 CCIP already wrote. Don't run it in watch mode at the same time as CCIP: it could register a fund
 before the CCIP message lands, and the message would then take the `-2` label.
 
-Gas on the forks: Arc `createIndex` ~3.1M including the CCIP send. Sepolia `ccipReceive` ~1.17M,
-against a 2.5M limit (`ArcEnsRegistrar.setGasLimit`).
+**Gas: do not size it from a fork.** Storage writes on live Sepolia cost several times what a
+Hardhat fork reports: one new text record is ~384k gas live, against ~70k on the fork. `ccipReceive`
+uses ~1.2M gas on a fork, but **~4.5M live for a 3-token fund and up to ~7.5M** for 10 tokens with
+long names. The first live message ran with a 2.5M limit and failed. The registrar now requests
+**9,000,000** gas (`CCIP_GAS_LIMIT`); `ccip-setup` corrects an existing registrar. The lane accepts
+up to ~14.36M. The fee is ~0.53 USDC at 9M, barely more than at 2.5M.
+
+### Live deployment (2026-11-06)
+
+| | Address |
+| --- | --- |
+| ArcEnsRegistrar (Arc Testnet) | `0x39437a4f9c2ed49c5c3310681d440b26a0cb23cd`, set as `IndexFactory.registrar` |
+| InphinityEnsReceiver (Sepolia) | `0x95b9aaba9fc5209e68afe1686d80a69fa03bb23f` |
+
+The first live delivery: `aibuilders.inphinity.eth`, CCIP message `0xac8fffdf…d53b`, delivered in
+seconds (see its `inphinity.ccip` record).
+
+### Recovering a failed message (manual execution)
+
+A message can fail on Sepolia, for example from too little gas or a missing role. If the receiver
+call **reverts**, CCIP marks the message `FAILED`, stores nothing, and lets anyone re-run it later
+with more gas:
+
+1. Fix the cause first, if there is one (grant the role, or for gas, nothing to fix).
+2. Check it is eligible:
+   `curl -s https://api.ccip.chain.link/v2/messages/<messageId>` should show `"status":"FAILED"`
+   and `"readyForManualExecution":true`.
+3. Open `https://ccip.chain.link/msg/<messageId>` and connect any wallet on Ethereum Sepolia (it
+   only pays Sepolia gas; the team wallet is not required).
+4. Click **Manual execution**. Under the gas option, override the gas limit to **9000000**, then
+   confirm the transaction.
+5. The status turns `SUCCESS`, and `bun run verify -- <label>.inphinity.eth` resolves the name.
+
+If the receiver instead **caught** the error (its own `NamingFailed` event; the message shows
+`SUCCESS`), the payload is stored onchain. Run `retry(messageId)` on `InphinityEnsReceiver` from any
+Sepolia wallet with a high gas limit (e.g. 9,000,000), after fixing the cause.
+
+Manual execution replays the original message with its original label. If that label has since
+been taken by another fund, the receiver still dedupes it to `-2`.
 
 ## Verify in the ENS app
 
