@@ -14,7 +14,12 @@ type Pick = { token: Address; bps: number }
 
 export function Create() {
   const { isConnected } = useAccount()
-  const { stocks } = useStocks()
+  const { stocks: allStocks } = useStocks()
+  // Only stocks the exchange holds on Arc (bridged from Base Sepolia via CCTP and minted here) can be bought
+  // by a fund. A fund holding a stock with zero inventory could be created but never take a cash investment.
+  const stocks = allStocks.filter((s) => (s.inventory ?? 0n) > 0n)
+  const unavailable = allStocks.filter((s) => s.inventory === 0n)
+  const inventoryLoading = allStocks.length > 0 && allStocks.every((s) => s.inventory === undefined)
   const { send, busy } = useTx()
   const [step, setStep] = useState(1)
   const [name, setName] = useState('')
@@ -26,6 +31,7 @@ export function Create() {
   const total = picks.reduce((a, p) => a + p.bps, 0)
   const step1ok = name.trim().length > 0 && name.length <= 128 && symbol.trim().length > 0 && symbol.length <= 32 && desc.length <= 2048
   const step2ok = picks.length >= 2 && picks.length <= 10 && total === 10000 && picks.every((p) => p.bps > 0)
+    && picks.every((p) => stocks.some((s) => s.token === p.token))
   const bySym = (t: Address) => stocks.find((s) => s.token === t)
   const blended = picks.reduce((a, p) => a + (bySym(p.token)?.change ?? 0) * p.bps / 10000, 0)
 
@@ -96,6 +102,10 @@ export function Create() {
                   )
                 })}
               </div>
+              {inventoryLoading && <div className="note">Checking which stocks are available on Arc…</div>}
+              {unavailable.length > 0 && (
+                <div className="note">Not yet available on Arc: {unavailable.map((s) => ticker(s.symbol)).join(' · ')}. These stocks have no exchange inventory yet, so a fund could not buy them.</div>
+              )}
               {picks.length === 0 && <div className="note">Tap stocks above to add them to your basket.</div>}
               {stocks.filter((s) => picks.some((p) => p.token === s.token)).map((s) => {
                 const p = picks.find((x) => x.token === s.token)!
