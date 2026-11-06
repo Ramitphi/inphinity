@@ -18,9 +18,9 @@ function Tape() {
   const row = items.map((i) => (
     <span className="tape-item" key={i.k}>
       <b>{i.sym}</b>{i.price}{' '}
-      {i.ch !== undefined && (Math.abs(i.ch) < 0.005
-        ? <span className="flat">■0.00%</span>
-        : <span className={i.ch > 0 ? 'up' : 'down'}>{i.ch > 0 ? '▲' : '▼'}{pct(i.ch).slice(1)}</span>)}
+      {i.ch !== undefined && (i.ch > -0.005
+        ? <span className="up">▲{pct(Math.abs(i.ch)).slice(1)}</span>
+        : <span className="down">▼{pct(i.ch).slice(1)}</span>)}
     </span>
   ))
   return (

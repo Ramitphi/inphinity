@@ -21,8 +21,9 @@ export function Flash({ value, children, as: Tag = 'span', className = '' }: { v
 
 export function Change({ v }: { v: number | undefined }) {
   if (v === undefined || !Number.isFinite(v)) return <span className="chg flat">—</span>
-  const flat = Math.abs(v) < 0.005
-  return <span className={`chg ${flat ? 'flat' : v > 0 ? 'up' : 'down'}`}>{flat ? '■ 0.00%' : `${v > 0 ? '▲' : '▼'} ${pct(v)}`}</span>
+  // Unchanged counts as up, so every badge is green or red.
+  const up = v > -0.005
+  return <span className={`chg ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'} {pct(up ? Math.abs(v) : v)}</span>
 }
 
 /** LCD amount input; accepts digits and a single dot, limited to `decimals`. */
