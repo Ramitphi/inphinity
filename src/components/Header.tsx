@@ -25,7 +25,7 @@ function Tape() {
   ))
   return (
     <div className="tape" aria-label="Ticker">
-      <div className="tape-inner">{row}{row}</div>
+      <div className="tape-inner" style={{ animationDuration: `${items.length * 5}s` }}>{row}{row}</div>
     </div>
   )
 }
