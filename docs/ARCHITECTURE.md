@@ -40,7 +40,7 @@ flowchart LR
   end
 
   FB["Fallback relayer<br/>ens/fallback.ts, every 30 min<br/>only when CCIP can't name a fund"]
-  WEB["Web app (React, wagmi)<br/>Vercel · inphinity.trade<br/>Markets · Indices · Create · Portfolio · Bridge · /name.inphinity.eth"]
+  WEB["Web app (React, wagmi)<br/>Vercel · inphinity.trade<br/>Indices (home) · Prices (read-only) · Create · Portfolio · Bridge · /name.inphinity.eth"]
   YF[("Yahoo Finance")]
 
   TOK_B -->|"Bridge Kit"| BK -->|"mint"| TOK_A
@@ -48,8 +48,8 @@ flowchart LR
   REG -->|"ccipSend"| CCIP -->|"ccipReceive"| RCV
   FB -.->|"NamingSkipped or stuck > 2 h"| UR
   FB -.-> PR
-  WEB -->|"invest, create, trade"| FAC
-  WEB --> FUND
+  WEB -->|"create fund"| FAC
+  WEB -->|"invest / redeem"| FUND
   WEB -->|"Bridge Kit in browser"| BK
   WEB -->|"read records, verify vs Arc"| PR
 ```
@@ -66,7 +66,7 @@ flowchart LR
 | ArcEnsRegistrar → CCIP → InphinityEnsReceiver | Names each fund `<label>.inphinity.eth` on Sepolia inside the fund-creation tx; never blocks fund creation | `contracts/ccip/` |
 | UserRegistry + PermissionedResolver | Our ENSv2 subname registry and resolver; Enhanced Access Control keeps creators from repointing names | `ens/`, `ens/DESIGN.md` |
 | Fallback relayer | Names a fund only when CCIP didn't (skipped for fee, or stuck > 2 h); retries stored receiver failures | `ens/src/fallback.ts` |
-| Web app | React + wagmi on Vercel; the ENS profile page joins ENS identity with live NAV from Arc and verifies them | `src/` |
+| Web app | React + wagmi on Vercel, index-only (no single-stock buy/sell in the UI); the ENS profile page joins ENS identity with live NAV from Arc and verifies them | `src/` |
 
 PNG export (for slides and the submission form): [`architecture.png`](architecture.png).
 

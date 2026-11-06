@@ -2,7 +2,7 @@
 
 **Index funds from any tokenized stock: US today, Indian next.**
 
-Anyone can build an index fund from tokenized stocks and invest in it with USDC on Arc. Built at ETHGlobal Mumbai (5–7 Nov 2026), starting from Arc Studio.
+Anyone can build an index fund from tokenized stocks and invest in it with USDC on Arc. The app is index-only: you invest in funds, and a read-only Prices board shows the stocks they hold. Built at ETHGlobal Mumbai (5–7 Nov 2026), starting from Arc Studio.
 
 - **Live app:** https://www.inphinity.trade (also https://inphinity.vercel.app)
 - **Example fund profile:** https://www.inphinity.trade/bchip.inphinity.eth

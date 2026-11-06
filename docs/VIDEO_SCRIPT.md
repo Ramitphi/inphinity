@@ -28,17 +28,18 @@ Voice-over (VO) is about 130 words per minute. Cut wherever you see ✂.
   - Start on **Arc Testnet**: the app auto-switches before transactions, but avoid the extra popup.
 - [ ] **Pre-create a backup fund** (e.g. `DEMO2`) in case CCIP is slow on camera. Delivery is usually minutes, but you can't wait on camera.
 - [ ] **Tabs open, in order:**
-  1. https://www.inphinity.trade/ (Markets)
-  2. `/create`
-  3. The backup fund's page
-  4. https://www.inphinity.trade/bchip.inphinity.eth
-  5. `/bridge`
-  6. Basescan burn tx of the tNFLX transfer
-  7. Arcscan exchange address → token transfers
-  8. ccip.chain.link message page (aibuilders: `0xac8fffdf…d53b`)
-  9. sepolia.app.ens.domains → `bchip.inphinity.eth`
-  10. **Arc Studio project**: contracts tab, chat history
-  11. `docs/ARCHITECTURE.md` rendered on GitHub (repo public)
+  1. https://www.inphinity.trade/ (Indices home)
+  2. The Prices tab
+  3. `/create`
+  4. The backup fund's page
+  5. https://www.inphinity.trade/bchip.inphinity.eth
+  6. `/bridge`
+  7. Basescan burn tx of the tNFLX transfer
+  8. Arcscan exchange address → token transfers
+  9. ccip.chain.link message page (aibuilders: `0xac8fffdf…d53b`)
+  10. sepolia.app.ens.domains → `bchip.inphinity.eth`
+  11. **Arc Studio project**: contracts tab, chat history
+  12. `docs/architecture.png` (or `ARCHITECTURE.md` on GitHub once the repo is public)
 - [ ] **Screen:** browser at 1440×900 or 1920×1080, 110% zoom, notifications off, bookmarks bar hidden.
 - [ ] **Audio:** an external mic or headset in a quiet room.
 
@@ -48,8 +49,8 @@ Voice-over (VO) is about 130 words per minute. Cut wherever you see ✂.
 
 | # | Time | Screen | Clicks | Voice-over |
 |---|---|---|---|---|
-| 1 | 0:00–0:20 | Title card ("Inphinity · index funds from any tokenized stock"), then Markets | None | "In India, most people invest through mutual funds and index funds, not by picking single stocks. Tokenized stocks are arriving onchain, but there's no fund layer: you buy and track every token yourself. Inphinity lets anyone build an index fund from tokenized stocks, on Arc, in USDC." |
-| 2 | 0:20–0:45 | Markets board (`/`) | Hover a row (tNVDA). Open the Arcscan tab: a `PricesUpdated` report tx. | "These are sixteen US stocks, priced by Chainlink CRE. A workflow fetches Yahoo Finance prices with median consensus and writes a signed report to our exchange on Arc every five minutes. Here's one landing onchain. Each update is capped at five percent; here CRE clamped AMD's jump. The exchange trades at that oracle price, against its own inventory: no AMM pool to drift." |
+| 1 | 0:00–0:20 | Title card ("Inphinity · index funds from any tokenized stock"), then the Indices home page | None | "In India, most people invest through mutual funds and index funds, not by picking single stocks. Tokenized stocks are arriving onchain, but there's no fund layer: you buy and track every token yourself. Inphinity lets anyone build an index fund from tokenized stocks, on Arc, in USDC." |
+| 2 | 0:20–0:45 | **Prices** tab (read-only board) | Hover a row (tNVDA): price, 1D, since listing, inventory, "in N funds". Open the Arcscan tab: a `PricesUpdated` report tx. Click **Build a fund with this →** on one row to lead into scene 3. | "Funds are built from sixteen US stocks, priced by Chainlink CRE. A workflow fetches Yahoo Finance prices with median consensus and writes a signed report to our exchange on Arc every five minutes. Here's one landing onchain. Each update is capped at five percent; here CRE clamped AMD's jump. There's no single-stock trading here: funds buy their stocks from our exchange at that oracle price, so fund prices track the real market." |
 | 3 | 0:45–1:15 | Create index (`/create`) | Name "Mumbai Tech", symbol MTECH → **Next: stocks →** → tap tAAPL, tNVDA, tMSFT, tNFLX (tNFLX is selectable only once the pre-started bridge has landed in exchange inventory; until then the page lists it under "Not yet available on Arc", so use tGOOGL instead) → **Split equally** → **Next: fee & review →** → fee 1% → note the line "ENS: your fund will be listed as mtech.inphinity.eth" → **Create** → confirm in MetaMask | "Creating a fund: pick two to ten stocks, set the weights and a fee. Notice the ENS name: this fund will be named on Ethereum in the same transaction. Confirm. The fund is now its own contract on Arc." ✂ (cut the wait) |
 | 4 | 1:15–1:40 | New fund's page (or the backup fund) | Enter 10 USDC → **Invest** → confirm → show NAV / share, Fund value, Holding table | "Invest ten USDC. The fund buys the basket by weight and mints shares at NAV, so I pay my own spread and existing holders aren't diluted. NAV per share started at one dollar; performance is NAV since inception, net of fees, moving with every Chainlink update." |
 | 5 | 1:40–2:10 | `/bchip.inphinity.eth`, then the CCIP explorer, then the ENS app | Scroll to **Verified against Arc** → ccip.chain.link tab (SUCCESS) → sepolia.app.ens.domains tab | "Every fund gets an ENSv2 name. Fund creation on Arc sends a Chainlink CCIP message to Sepolia. Our receiver registers the name in our own ENSv2 registry and writes the Arc address, weights and fee. The creator owns the name but, by Enhanced Access Control, can't repoint it: no phishing funds. This page reads ENS and verifies it live against the contract on Arc. Identity in ENS, value onchain." |
@@ -59,7 +60,7 @@ Voice-over (VO) is about 130 words per minute. Cut wherever you see ✂.
 
 If the main cut runs long: trim scene 2's arcscan detour and scene 7's test scroll. Don't trim scene 6 or 7; Arc requires Studio to appear on screen.
 
-**Index-only variant:** in scene 2, replace "The exchange trades at that oracle price…" with "Funds trade through our exchange at that oracle price, so the app is index funds only." The clicks stay the same.
+**Written for the index-only app** (Indices is home, Prices is read-only; PR #25). Before recording, re-check the button labels against the merged UI: the PR was not pushed when this script was written.
 
 ---
 
@@ -69,8 +70,8 @@ If the main cut runs long: trim scene 2's arcscan detour and scene 7's test scro
 
 | Time | Screen | VO (short version of above) |
 |---|---|---|
-| 0:00–0:15 | Title, then Markets | Problem: no fund layer for tokenized stocks; Inphinity builds index funds on Arc. |
-| 0:15–0:35 | Markets + Arcscan report | Chainlink CRE prices every 5 min, 5% cap. |
+| 0:00–0:15 | Title, then Indices | Problem: no fund layer for tokenized stocks; Inphinity builds index funds on Arc. |
+| 0:15–0:35 | Prices board + Arcscan report | Chainlink CRE prices every 5 min, 5% cap. |
 | 0:35–1:00 | **BCHIP** fund page (existing) | Funds: weights, fee, NAV-priced shares, since inception (+0.97% at 00:30 IST). Show the invest box without sending. |
 | 1:00–1:25 | `/bchip.inphinity.eth` + CCIP message (aibuilders) | ENSv2 names over CCIP; EAC roles; verified against Arc. |
 | 1:25–1:45 | Bridge page + the verified tAAPL burn/mint links from 6 Nov | CCTP stock tokens via Bridge Kit. |

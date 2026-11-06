@@ -45,7 +45,7 @@ Copy-paste answers for every field of the ETHGlobal Mumbai project form, in form
 >
 > **What we built (all live on testnets):**
 > - **16 mock US stocks** (tAAPL, tNVDA, tNFLX…) are issued on Base Sepolia as **Circle CCTP native cross-chain tokens** and bridged to **Arc Testnet** with Circle **Bridge Kit**: same address on both chains, burn and mint, no wrapped IOU.
-> - An oracle-priced **StockExchange** on Arc holds stock inventory and a USDC reserve. It trades at the oracle price ± 0.5%, with a 5% cap per price update and a stale-price freeze.
+> - An oracle-priced **StockExchange** on Arc holds stock inventory and a USDC reserve. Funds buy and sell their stocks through it at the oracle price ± 0.5%, with a 5% cap per price update and a stale-price freeze. The app is **index-only**: users invest in funds, not single stocks. A read-only Prices board shows each stock's Chainlink price and which funds hold it.
 > - **Chainlink CRE** fetches prices from Yahoo Finance with median consensus and writes signed reports to the exchange every 5 minutes. Real market moves land onchain.
 > - **Index funds:** pick 2–10 stocks, set the weights and a fee (up to 2%/yr). Each fund is an ERC-20 whose shares are minted and burned at **NAV**. The investor pays the spread, so existing holders aren't diluted. Performance is NAV per share "since inception" (every fund starts at 1.00).
 > - **ENSv2 names:** every fund gets `<name>.inphinity.eth` on Sepolia, written from Arc in the same transaction that creates the fund, through **Chainlink CCIP**. The name resolves to the fund's Arc address and carries its weights, fee and creator. The fund profile page (e.g. `/bchip.inphinity.eth`) reads the ENS records and verifies them against the fund contract on Arc.
@@ -54,7 +54,7 @@ Copy-paste answers for every field of the ETHGlobal Mumbai project form, in form
 >
 > Tokens are mocks priced from real market data, not securities. The design takes any tokenized stock, so Indian equities (NSE prices through CRE, an Indian issuer on its home chain) are the next market.
 
-`[RAMIT]` If you ship the **index-only** version (DECISIONS.md 4b), change one sentence: "It trades at the oracle price ± 0.5%" → "Funds trade through it at the oracle price ± 0.5%; the app offers index funds only, not single-stock trading." Nothing else changes.
+Written for the **index-only** app (DECISIONS.md 4b, decided by Ramit; UI in PR #25).
 
 ### How it's made (min 280 characters)
 
@@ -120,7 +120,7 @@ Copy-paste answers for every field of the ETHGlobal Mumbai project form, in form
 > - an inventory exchange instead of an AMM;
 > - ENS as the fund registry;
 > - NAV "since inception";
-> - the index-only scope.
+> - making the app index-only.
 >
 > He also reviewed and merged every PR, approved and funded every onchain transaction, and ran the Chainlink CRE simulation on his laptop. The reasoning behind each decision is in `docs/DECISIONS.md`, and the timeline in `docs/BUILD_LOG.md`.
 >
@@ -254,13 +254,14 @@ See [`VIDEO_SCRIPT.md`](VIDEO_SCRIPT.md). Main cut ~3:00. Backup cut ~2:10: the 
 ## 5. Images (form page 2: "Upload images")
 
 `[RAMIT]` Suggested screenshots, at desktop width:
-1. Markets board with live prices.
-2. Create index review step.
-3. A fund page (NAV / share, since inception).
-4. `/bchip.inphinity.eth` profile with "Verified against Arc".
-5. Bridge from Base page.
-6. The architecture diagram (render `docs/ARCHITECTURE.md` on GitHub).
-7. The Arc Studio project.
+1. Indices home page.
+2. Prices board with live Chainlink prices.
+3. Create index review step.
+4. A fund page (NAV / share, since inception).
+5. `/bchip.inphinity.eth` profile with "Verified against Arc".
+6. Bridge from Base page.
+7. `docs/architecture.png`.
+8. The Arc Studio project.
 
 ## 6. Contract addresses
 
@@ -300,12 +301,12 @@ Live state read 7 Nov ~00:55 IST: `priceSource = 1` (Chainlink feed), last CRE r
 - **CCIP fee:** the testnet CCIP fee is ~21.7 USDC per fund. While the registrar holds less than that, new funds aren't named by CCIP; they get `NamingSkipped` and the fallback names them.
 - **Fallback relayer:** it is built and dry-run tested but not yet started (open item in BUILD_LOG). Fund **RMT** and fund **AICHIP** (`ccipdemo`) are unnamed until it runs.
 - **SIPManager:** it is deployed but has no UI.
-- **Public `buy`/`sell`:** `StockExchange.buy/sell` stay public onchain even in an index-only app.
+- **Public `buy`/`sell`:** the app is index-only, but `StockExchange.buy/sell` stay public onchain. Restricting them to registered funds needs an exchange redeploy, so it's a next step.
 
 ## 9. Gaps only Ramit can fill
 
 1. **Make the repo public** (blocker).
 2. **Arc Studio shareable project URL** (judges must be able to open it): app `7582b931-f752-4b46-a210-d0898b2062a7`.
-3. Ease ratings (suggested above), and the index-only go/no-go (one sentence in the description).
+3. Ease ratings (suggested above).
 4. Team / social handles for the showcase, if the form asks.
 5. Arc: confirm that we name only the Bridge Kit track. The DeFi / Onchain Finance track ("trading with tokenized RWAs") also fits, but Arc asks you to state which bounty.
