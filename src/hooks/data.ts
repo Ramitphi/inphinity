@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useAccount, useReadContract, useReadContracts } from 'wagmi'
 import { arcTestnet } from 'viem/chains'
 import { erc20Abi, type Address } from 'viem'
+import { usePrevClose } from './prevClose'
 import { EXCHANGE, FACTORY, USDC, exchangeAbi, factoryAbi, fundAbi, LISTING_PRICE, COMPANY } from '../lib/contracts'
 
 const chainId = arcTestnet.id
@@ -11,12 +12,19 @@ export type Stock = {
   token: Address; name: string; symbol: string; company: string
   price: bigint; updatedAt: bigint; inventory?: bigint
   change: number // % vs listing price
+  /** % vs the previous close (last price reported before the latest NYSE open); falls back to listing. */
+  dayChange: number
 }
 
 export function changeVsListing(symbol: string, price: bigint) {
   const base = LISTING_PRICE[symbol]
   if (!base) return 0
   return ((Number(price) / 1e6 - base) / base) * 100
+}
+
+function dayChange(symbol: string, price: bigint, prevClose: bigint | undefined) {
+  if (!prevClose) return changeVsListing(symbol, price)
+  return ((Number(price) - Number(prevClose)) / Number(prevClose)) * 100
 }
 
 export function useStocks() {
@@ -26,14 +34,16 @@ export function useStocks() {
     contracts: list.map((s) => ({ chainId, address: EXCHANGE, abi: exchangeAbi, functionName: 'inventoryOf', args: [s.token] }) as const),
     query: { enabled: list.length > 0, refetchInterval: POLL },
   })
+  const prev = usePrevClose(list.length)
   const stocks: Stock[] = useMemo(
     () => list.map((s, i) => ({
       token: s.token, name: s.name, symbol: s.symbol, company: COMPANY[s.symbol] ?? s.name.replace(/^Mock /, ''),
       price: s.price, updatedAt: s.updatedAt,
       inventory: inv.data?.[i]?.result as bigint | undefined,
       change: changeVsListing(s.symbol, s.price),
+      dayChange: dayChange(s.symbol, s.price, prev.data?.get(s.token.toLowerCase())),
     })),
-    [list, inv.data],
+    [list, inv.data, prev.data],
   )
   const byToken = useMemo(() => new Map(stocks.map((s) => [s.token.toLowerCase(), s])), [stocks])
   return { stocks, byToken, isLoading: q.isLoading, error: q.error, refetch: () => { q.refetch(); inv.refetch() } }

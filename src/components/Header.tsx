@@ -11,7 +11,7 @@ function Tape() {
   const { stocks } = useStocks()
   const { funds } = useFunds()
   const items = [
-    ...stocks.map((s) => ({ k: s.token, sym: ticker(s.symbol), price: usd(s.price), ch: s.change as number | undefined })),
+    ...stocks.map((s) => ({ k: s.token, sym: ticker(s.symbol), price: usd(s.price), ch: s.dayChange as number | undefined })),
     ...funds.map((f) => ({ k: f.address, sym: `${f.symbol} NAV`, price: usd(f.navPerShare), ch: undefined as number | undefined })),
   ]
   if (!items.length) return <div className="tape"><div className="tape-inner" style={{ animation: 'none', paddingLeft: 24 }}>LOADING PRICES FROM ARC…</div></div>

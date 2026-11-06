@@ -42,8 +42,8 @@ if [[ "$DRY_RUN" != "1" ]]; then
   # shell variable, even when it is empty (as copied from .env.example). An empty line
   # makes the CLI fall back to its unfunded default key, so refuse to start in that case.
   if [[ -f .env ]] && grep -Eq '^[[:space:]]*CRE_ETH_PRIVATE_KEY=' .env; then
-    if ! grep -Eq '^[[:space:]]*CRE_ETH_PRIVATE_KEY=["'"'"']?0x[0-9a-fA-F]{64}' .env; then
-      echo "cre/.env has an empty or invalid CRE_ETH_PRIVATE_KEY line; it overrides any exported variable. Put the key there (0x + 64 hex) or delete the line." >&2; exit 1
+    if ! grep -Eq '^[[:space:]]*CRE_ETH_PRIVATE_KEY=["'"'"']?(0x)?[0-9a-fA-F]{64}' .env; then
+      echo "cre/.env has an empty or invalid CRE_ETH_PRIVATE_KEY line; it overrides any exported variable. Put the key there (64 hex, 0x optional) or delete the line." >&2; exit 1
     fi
   elif [[ -z "${CRE_ETH_PRIVATE_KEY:-}" ]]; then
     echo "Broadcast needs CRE_ETH_PRIVATE_KEY (in cre/.env or the environment). Use DRY_RUN=1 for a dry run." >&2; exit 1

@@ -51,6 +51,7 @@ export const registryAbi = parseAbi([
   "function isEmancipated() view returns (bool)",
   "function hasRootRoles(uint256 roleBitmap, address account) view returns (bool)",
   "function grantRootRoles(uint256 roleBitmap, address account) returns (bool)",
+  "function revokeRootRoles(uint256 roleBitmap, address account) returns (bool)",
   "function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes data)",
   "function unsafeTransfer(address to, uint256 tokenId, bytes data)",
   "error LabelAlreadyRegistered(string label)",
@@ -82,6 +83,7 @@ export const permissionedResolverAbi = parseAbi([
   "function hasRoles(uint256 resource, uint256 roleBitmap, address account) view returns (bool)",
   "function hasRootRoles(uint256 roleBitmap, address account) view returns (bool)",
   "function grantRootRoles(uint256 roleBitmap, address account) returns (bool)",
+  "function revokeRootRoles(uint256 roleBitmap, address account) returns (bool)",
   "error EACUnauthorizedAccountRoles(uint256 resource, uint256 roleBitmap, address account)",
   "error InvalidRecord()",
 ]);
