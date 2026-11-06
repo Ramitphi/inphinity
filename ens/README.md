@@ -1,0 +1,164 @@
+# Inphinity on ENSv2: the `inphinity.eth` fund registry (Sepolia)
+
+Every index fund created by Inphinity's `IndexFactory` on Arc Testnet gets a name
+`<label>.inphinity.eth` on Sepolia. It resolves to the fund's Arc address and carries its
+composition, fee and creator as records. The name is owned by the fund's creator. Why and how this
+uses ENSv2 is in [DESIGN.md](./DESIGN.md).
+
+| Name | Resolves to |
+| --- | --- |
+| `inphinity.eth` | the IndexFactory on Arc, plus registry-wide records |
+| `<label>.inphinity.eth` | one fund (token owned by its creator) |
+| `<symbol>.inphinity.eth` | the same records as the fund with that symbol (record link) |
+| `latest.inphinity.eth` | the newest fund (record link) |
+| anything else under `inphinity.eth` | the default bundle: "Not an Inphinity fund", no address |
+
+## Contracts
+
+All ENS contracts are ENS's own live ENSv2 Sepolia deployment, from
+[contracts-v2](https://github.com/ensdomains/contracts-v2/tree/deploy/mainnet-v2-20261002/contracts/deployments/sepolia)
+(branch `deploy/mainnet-v2-20261002`). That is the set behind the Universal Resolver
+`0xeEeE…EeEe` and sepolia.app.ens.domains. The older tags (`sepolia-deployment-2026-06-29`,
+`-09-15`) are **not** live. Names registered there do not resolve.
+
+| Contract | Address |
+| --- | --- |
+| ETH Registry (.eth) | `0xd4ebcbbdf463c9c45784603db0ddd499bc44a8b4` |
+| ETH Registrar | `0xf633e7fc17e2bbe0d0965d18ec1821dcb754a3d3` |
+| Verifiable Factory | `0xda70306c98e97ece36f997a21368e53298572991` |
+| UserRegistry implementation | `0x9bd8a88719068d09ecee662f36c0e3856708366a` |
+| PermissionedResolver implementation | `0x115eb53f0c60696633855f90b138178fb40b2b2c` |
+| Universal Resolver (proxy) | `0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe` |
+
+Deployed by `setup-registry.ts`. Addresses are deterministic from the team wallet and the salt, so
+`--dry-run` predicts them:
+
+| Ours | Address |
+| --- | --- |
+| UserRegistry proxy for `inphinity.eth` | `0xefC414eb999907620AbdA991decD2BD22aBb9Ac1` |
+| PermissionedResolver proxy | `0x26E1611FD97133dfaef7b562D88528e8C1649ae2` |
+
+No new Solidity: everything is ENS's audited contracts, configured through their roles.
+
+## Runbook
+
+Run from `ens/`, with the team wallet key (`0xC658…4C93`, which owns `inphinity.eth`). Every script
+reads chain state first and only sends what is missing, so any step can be re-run safely.
+
+```bash
+cd ens
+bun install
+export PRIVATE_KEY=0x...            # team wallet; never commit it
+# optional: export SEPOLIA_RPC_URL=...  (default https://ethereum-sepolia-rpc.publicnode.com)
+
+# 0. Preview everything (no key needed, simulates as the team wallet)
+bun run register-parent -- --dry-run
+bun run setup-registry  -- --dry-run
+
+# 1. Register inphinity.eth (commit, wait 60s, register; pays in a stablecoin)
+#    Already done on 2026-11-06 (owner = team wallet, expires 2027-11-06): prints "Nothing to do".
+bun run register-parent
+
+# 2. Deploy the UserRegistry + Permissioned Resolver, attach them to inphinity.eth,
+#    reserve latest/www/app/admin/official/support, write the default bundle and parent records
+bun run setup-registry
+
+# 3. Mirror every fund: backfill from indexCount()/indexAt(), then poll every 15 s
+bun run relayer -- --once          # backfill and exit
+bun run relayer                    # keep running (Ctrl-C to stop)
+
+# 4. Check what the world sees (read-only, no key)
+bun run verify
+bun run verify -- bchip.inphinity.eth latest.inphinity.eth
+```
+
+Commit `ens/deployments.sepolia.json` after step 2. It records the proxy addresses, which
+`relayer.ts` and `verify.ts` read.
+
+### Expected cost (Sepolia ETH)
+
+Gas measured on a fork of the live contracts. Sepolia gas was about 20 wei on 2026-11-06, so real
+costs are tiny. The worst case below assumes 10 gwei.
+
+| Step | Gas | At 10 gwei |
+| --- | --- | --- |
+| register-parent (approve + commit + register) | ~330k | ~0.003 ETH, plus ~8 USDC per year in Circle USDC or free-to-mint ENS MockUSDC |
+| setup-registry (2 proxies, attach, 6 reservations, records) | ~2.0M | ~0.02 ETH |
+| relayer, per fund (register + 11 records + symbol link) | ~1.1M | ~0.011 ETH |
+| relayer, `latest` link update | ~50k | ~0.0005 ETH |
+
+The team wallet's 0.1 Sepolia ETH covers setup plus several dozen funds at that worst case.
+
+### Options
+
+| Env / flag | Used by | Meaning |
+| --- | --- | --- |
+| `--dry-run` | all writers | simulate every transaction, send nothing, do not touch the state file |
+| `--once` | relayer | backfill and exit instead of polling |
+| `POLL_MS` | relayer | poll interval, default 15000 |
+| `ARC_RPC_URL` | relayer, verify | default `https://rpc.testnet.arc.network` |
+| `ARC_FROM_BLOCK` | relayer | first block to scan for `IndexCreated`, default 71001972 (factory deploy) |
+| `FUND_URL_TEMPLATE` | relayer | `url` record per fund, default Arc explorer `…/address/{address}` |
+| `APP_URL` | setup-registry | `url` record of `inphinity.eth` and the default bundle |
+| `ENS_DURATION_DAYS`, `PAYMENT_TOKEN` | register-parent | registration length (default 365) and a forced stablecoin |
+
+## Verify in the ENS app
+
+1. Open https://sepolia.app.ens.domains/inphinity.eth. The owner should be `0xC658…4C93`, and the
+   resolver `0x26E1…9ae2`. Its records include `inphinity.factory` and `inphinity.registry`.
+2. Open a fund name, e.g. https://sepolia.app.ens.domains/bchip.inphinity.eth. Check:
+   - **Address**: the fund's Arc address under coin type 2152525650, and no ETH address.
+   - **Records**: `inphinity.weights`, `inphinity.fee`, `inphinity.creator`, `inphinity.chain`.
+   - **Ownership**: the creator owns the name token, and it cannot be transferred.
+3. https://sepolia.app.ens.domains/latest.inphinity.eth shows the newest fund's records.
+4. Explorer view of the registry: https://sepolia.explorer.ens.domains.
+
+From code, any viem app can resolve a fund (viem must be pointed at the ENSv2 Universal Resolver):
+
+```ts
+const fund = await client.getEnsAddress({
+  name: "bchip.inphinity.eth",
+  coinType: 2152525650n, // 0x80000000 | 5042002, Arc Testnet (ENSIP-11)
+  universalResolverAddress: "0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe",
+});
+const weights = await client.getEnsText({ name: "bchip.inphinity.eth", key: "inphinity.weights", universalResolverAddress: "0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe" });
+```
+
+## Testing on a fork
+
+`test/fork-e2e.ts` runs the real scripts against a local Hardhat fork of Sepolia. It impersonates
+the team wallet, so no key is needed. Three sample funds go through the relayer code, resolution is
+checked through the Universal Resolver, and a creator is impersonated to show what they cannot do:
+edit records, change the resolver, attach a subregistry, transfer the name, or register names.
+
+```bash
+# terminal 1 (publicnode is not an archive node, so pin a recent block)
+FORK_BLOCK=$(curl -s -X POST -H 'content-type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' \
+  https://ethereum-sepolia-rpc.publicnode.com | sed 's/.*"result":"\(0x[0-9a-f]*\)".*/\1/' | xargs printf '%d') \
+  bun run fork
+# terminal 2
+export SEPOLIA_RPC_URL=http://127.0.0.1:8545 ENS_STATE_FILE=/tmp/fork-state.json \
+       FORK_IMPERSONATE=0xC658A9Bd5ADE6CCd87874f5De925528CE57b4C93
+curl -s -X POST -H 'content-type: application/json' 127.0.0.1:8545 \
+  --data '{"jsonrpc":"2.0","id":1,"method":"hardhat_impersonateAccount","params":["0xC658A9Bd5ADE6CCd87874f5De925528CE57b4C93"]}'
+bun run register-parent && bun run setup-registry && bun run test:fork
+bun run relayer -- --once && bun run verify -- bchip.inphinity.eth
+```
+
+Hardhat only mines on transactions, and `register-parent` waits on chain time. If you run it
+on a fork for a name that is not registered yet, also mine blocks in the background, e.g.
+`while true; do curl -s -X POST -H 'content-type: application/json' 127.0.0.1:8545 --data '{"jsonrpc":"2.0","id":1,"method":"evm_mine","params":[]}' >/dev/null; sleep 4; done`.
+
+## Files
+
+| File | What it does |
+| --- | --- |
+| `src/register-parent.ts` | Commit-reveal registration of `inphinity.eth` via the ETH Registrar, paid in a stablecoin |
+| `src/setup-registry.ts` | UserRegistry + Permissioned Resolver via the Verifiable Factory, attach, reserve labels, default bundle |
+| `src/relayer.ts` | Arc → ENS: register fund names to creators, write records, maintain symbol and `latest` links |
+| `src/verify.ts` | Resolve through the Universal Resolver and compare with live Arc data and the token roles |
+| `src/records.ts` | Diff-and-write records, record linking helpers |
+| `src/lib.ts` | ENSv2 role bitmaps, DNS encoding, label rules, state file, dry-run aware sender |
+| `src/config.ts`, `src/abis.ts` | Addresses and minimal ABIs |
+| `test/fork-e2e.ts` | End-to-end test on a Sepolia fork |
