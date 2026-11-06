@@ -28,7 +28,7 @@ export function Create() {
   const [picks, setPicks] = useState<Pick[]>([])
   const [feeBps, setFeeBps] = useState(100)
 
-  // /create?with=AAPL (from the Prices board or Bridge): pre-select that stock once it is known to be available.
+  // /create?with=AAPL (from the Prices board or the issuer console): pre-select that stock once it is known to be available.
   const preselect = useRef(new URLSearchParams(window.location.search).get('with')?.trim().toUpperCase() || null)
   useEffect(() => {
     const want = preselect.current

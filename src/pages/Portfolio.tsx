@@ -64,7 +64,7 @@ export function Portfolio() {
                 <td className="r mono">{usd((bal * s.price) / E18)}</td><td className="r"><Change v={s.change} /></td></tr>
             ))}</tbody>
           </table>
-          <div className="note">Single stocks are not traded in the app. These are tokens in your wallet, for example from bridging.</div>
+          <div className="note">Single stocks are not traded in the app. These are stock tokens held directly in your wallet.</div>
         </>
       )}
 
