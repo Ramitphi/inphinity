@@ -1,7 +1,7 @@
 import { useAccount, useReadContracts } from 'wagmi'
 import { arcTestnet } from 'viem/chains'
 import { erc20Abi } from 'viem'
-import { qty, ticker, units, usd } from '../lib/format'
+import { INCEPTION_TIP, qty, sinceInception, ticker, units, usd } from '../lib/format'
 import { Link } from '../lib/router'
 import { POLL, useFunds, useStocks, useUsdcBalance } from '../hooks/data'
 import { Change, Lcd } from '../components/ui'
@@ -42,7 +42,7 @@ export function Portfolio() {
       <h3 className="eyebrow" style={{ margin: '20px 0 6px' }}>Stocks</h3>
       {held.length === 0 ? <div className="note">No stocks yet. <Link to="/">Buy on the board →</Link></div> : (
         <table className="board">
-          <thead><tr><th>Symbol</th><th className="r">Units</th><th className="r hide-sm">Price</th><th className="r">Value</th><th className="r">Change</th></tr></thead>
+          <thead><tr><th>Symbol</th><th className="r">Units</th><th className="r hide-sm">Price</th><th className="r">Value</th><th className="r">Since listing</th></tr></thead>
           <tbody>{held.map(({ s, bal }) => (
             <tr key={s.token}><td className="sym">{ticker(s.symbol)}</td><td className="r mono">{units(bal)}</td>
               <td className="r hide-sm"><Lcd value={usd(s.price).replace(/,/g, '')} /></td>
@@ -54,12 +54,13 @@ export function Portfolio() {
       <h3 className="eyebrow" style={{ margin: '24px 0 6px' }}>Index funds</h3>
       {myFunds.length === 0 ? <div className="note">No fund shares yet. <Link to="/indices">Browse indices →</Link></div> : (
         <table className="board">
-          <thead><tr><th>Fund</th><th className="r">Shares</th><th className="r hide-sm">NAV / share</th><th className="r">Value</th></tr></thead>
+          <thead><tr><th>Fund</th><th className="r">Shares</th><th className="r hide-sm">NAV / share</th><th className="r">Value</th><th className="r" title={INCEPTION_TIP}>Since inception</th></tr></thead>
           <tbody>{myFunds.map((f) => (
             <tr key={f.address}><td><Link to={`/index/${f.address}`}><b>{f.name}</b> <span className="sym muted" style={{ fontSize: 19 }}>{f.symbol}</span></Link></td>
               <td className="r mono">{qty(f.balance)}</td>
               <td className="r hide-sm"><Lcd value={usd(f.navPerShare).replace(/,/g, '')} /></td>
-              <td className="r mono">{usd(((f.balance ?? 0n) * (f.navPerShare ?? 0n)) / E18)}</td></tr>
+              <td className="r mono">{usd(((f.balance ?? 0n) * (f.navPerShare ?? 0n)) / E18)}</td>
+              <td className="r" title={INCEPTION_TIP}><Change v={sinceInception(f.navPerShare)} /></td></tr>
           ))}</tbody>
         </table>
       )}

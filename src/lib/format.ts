@@ -9,6 +9,11 @@ export const qty = (v: bigint | undefined, max = 4) =>
 
 export const pct = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}%`
 
+/** Fund return since launch in %: every fund starts at 1.00 USDC per share, so this is NAV per share vs 1.00, after fees. */
+export const sinceInception = (navPerShare: bigint | undefined) =>
+  navPerShare === undefined ? undefined : (Number(navPerShare) / 1e6 - 1) * 100
+export const INCEPTION_TIP = 'NAV per share vs 1.00 at launch, after fees'
+
 export const short = (a?: string) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '')
 
 export const ticker = (symbol: string) => symbol.replace(/^t/, '')

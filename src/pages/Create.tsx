@@ -144,7 +144,7 @@ export function Create() {
                 <div className="note">ENS: your fund will be listed as <b className="mono">{expectedEnsName(symbol.trim(), name.trim())}</b> on Sepolia (ENSv2), owned by you. Arc sends it to Ethereum through Chainlink CCIP, so it appears a few minutes after creation.</div>
               )}
               <table className="board" style={{ marginTop: 16 }}>
-                <thead><tr><th>Stock</th><th className="r">Weight</th><th className="r">Change</th></tr></thead>
+                <thead><tr><th>Stock</th><th className="r">Weight</th><th className="r">Since listing</th></tr></thead>
                 <tbody>
                   {stocks.filter((s) => picks.some((p) => p.token === s.token)).map((s) => (
                     <tr key={s.token}><td className="sym">{ticker(s.symbol)} <span className="name">{s.company}</span></td>
@@ -171,7 +171,7 @@ export function Create() {
             <KV k="Stocks">{picks.length ? stocks.filter((s) => picks.some((p) => p.token === s.token)).map((s) => ticker(s.symbol)).join(' · ') : '—'}</KV>
             <KV k="Starting NAV">1.00 USDC</KV>
             <KV k="Fee">{(feeBps / 100).toFixed(2)}% / yr</KV>
-            <KV k="Blended change vs listing"><span className={blended >= 0 ? 'up' : 'down'}>{picks.length ? `${blended >= 0 ? '▲ +' : '▼ −'}${Math.abs(blended).toFixed(2)}%` : '—'}</span></KV>
+            <KV k="Basket, since listing"><span className={blended >= 0 ? 'up' : 'down'}>{picks.length ? `${blended >= 0 ? '▲ +' : '▼ −'}${Math.abs(blended).toFixed(2)}%` : '—'}</span></KV>
             {desc && <div className="note">{desc}</div>}
             <div className="note">Weights are fixed once created. Investors deposit USDC; the fund buys each stock at its weight from the exchange.</div>
           </div>
