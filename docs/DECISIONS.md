@@ -52,6 +52,33 @@ Studio.
 - 8 stocks first (AAPL, MSFT, NVDA, TSLA, AMZN, GOOGL, META, SPY).
 - Then 8 more (NFLX, AMD, JPM, V, WMT, KO, DIS, ORCL) so funds have real choice.
 
+### 2a. Why bridge with CCTP instead of wrapping (brainstorm, 7 Nov, ~02:30 IST)
+
+**Question (Ramit):** why not wrap the stocks? Why bridge with CCTPx?
+
+**How the two work:**
+- **Wrapping (lock and mint):** the original is locked in a bridge contract on Base, and the bridge mints a
+  *different* token on Arc, an IOU.
+- **CCTPx (burn and mint):** the issuer's *own* token exists on every chain at the same address (CREATE3). A
+  transfer burns on Base, Circle attests, and the same token is minted on Arc.
+
+| | Wrapped | CCTPx (chosen) |
+|---|---|---|
+| What you hold on Arc | An IOU from the bridge | The issuer's real token |
+| Hack risk | The locked pool is a honeypot (Ronin, Wormhole, Nomad) | Nothing is locked, so nothing to drain |
+| Versions of a stock | One per bridge, which splits liquidity | One canonical token, same address on both chains |
+| Issuer control | Ends at the bridge | The issuer stays the minter and owner on every chain; per-token transfer limits |
+| Compliance later (KYC, Indian stocks) | Can't be enforced on someone else's IOU | Same contract everywhere, so rules travel with the token |
+| Supply | Split between locked and wrapped | One number across chains, kept exact by burn and mint |
+
+**Trade-offs:**
+- You trust Circle's attestation service (the same trust model as USDC).
+- Standard transfers wait 15–20 min for Base finality.
+- Only Circle-supported chains, and the fee is paid in source-chain ETH.
+
+**Line:** "We don't wrap stocks. A wrapped stock is an IOU locked in a bridge; with CCTP the issuer's own token is
+burned on Base and minted on Arc."
+
 ## 3. How stocks trade on Arc: inventory exchange, not an AMM
 
 **Options:**
@@ -138,6 +165,48 @@ centred on index funds.
 
 **Status:** **decided** by Ramit on 7 Nov, ~00:50 IST ("make Inphinity index-only"). The UI change is being built in a dedicated session; the onchain lock stays a next step.
 
+### 4c. Custody: who holds the stocks (brainstorm, 7 Nov, ~02:20 IST)
+
+**Question (Ramit):** "the fund buys every stock at its target weight", so who actually holds those tokens?
+
+**On `invest(usdcIn)`:**
+1. The fund splits the USDC by weight.
+2. For each stock it calls `StockExchange.buy()`.
+3. The exchange sells from **its own inventory** (stocks the issuer bridged in) at the Chainlink mid + 0.5%, and
+   sends the tokens **to the fund contract**. The USDC goes to the exchange's reserve.
+4. The fund mints shares to the investor for the mid-price value received.
+
+**Custody chain:** issuer (Base) → CCTP → exchange inventory (Arc) → **fund contract** → back to the exchange on
+`redeem()`. The investor holds only fund shares (ERC-20).
+
+**No one can withdraw a fund's stocks.** `IndexFund` has no admin or withdraw function. Tokens leave only
+through `redeem()`, which sells the redeemer's pro-rata slice back to the exchange. The creator earns only the
+fee, as new shares.
+
+**Weights are exact at purchase time only.** Holdings then drift with prices (e.g. BCHIP's tNVDA went from 25%
+to 25.5% on 6 Nov). Each new investment buys at the target weights. There's no automatic rebalancing; that's a
+next step.
+
+### 4d. The bridge is the supply side: an issuer console, not a consumer feature (decision, 7 Nov, ~02:05 IST)
+
+**Ramit:** in an index-only product, the Bridge page read like a generic consumer feature.
+
+**Decision:**
+- Investors never bridge; they buy funds with USDC.
+- Bridging is how the **issuer** lists a stock on Arc.
+- Bridge leaves the main nav (Indices · Create · Portfolio · Prices).
+- `/issuer` ("Issuer · Send to Arc", with `/bridge` redirecting) keeps the full mint → send-to-exchange-inventory
+  flow for the issuer wallet. An "Issuer" nav item appears only for that wallet.
+- Everyone else sees a read-only **supply view**:
+  - the CCTP route;
+  - all 16 tokens with Basescan and Arcscan links;
+  - live exchange inventory;
+  - the verified tAAPL burn → mint.
+- A footer link "Issuer console" keeps it findable. Built in PR #30.
+
+The same pass fixed the NAV note, which wrongly said "sell price". NAV uses the Chainlink **mid** price plus
+idle USDC (`IndexFund.nav()` → `StockExchange.price()`).
+
 ## 5. Prices: Chainlink CRE
 
 **Options:**
@@ -214,6 +283,10 @@ them."
 
 ## 7. Frontend and design
 
+> **Update (7 Nov, ~01:15 IST):** Ramit dropped the seven-segment "odometer" digits (DSEG7 with faint "8" ghosts)
+> app-wide. Every number now uses the plain VT323 style of the "SHARES OUT" figure, at sizes from table to hero,
+> with thousands separators back (PR #29). The retro Doto headlines stay.
+
 - React, Vite, wagmi and viem on Arc Testnet. Pages: Markets, Indices, Create, Portfolio, Bridge.
 - **Design:** two mockups (clean vs retro). We chose **"analog digitized" retro**: DSEG7 seven-segment hero
   numbers and a VT323 terminal font.
@@ -241,6 +314,17 @@ them."
 - **ENS:** ENSv2 fund registry on Sepolia.
 
 ## 10. Open questions and next steps
+
+**Feature freeze (7 Nov, ~02:00 IST):** after the issuer console and the NAV note fix, no new features before
+judging. Remaining work is docs, onchain housekeeping and the demo.
+
+**Deliberately not built:**
+- the onchain index-only lock (an exchange redeploy);
+- live NAV through ENS (CCIP-Read);
+- rebalancing;
+- a SIP screen;
+- a deployed CRE workflow;
+- Indian stocks.
 
 - **Indian stocks:** NSE prices through CRE, and a licensed issuer or custodian on a home chain.
 - **ENS:** live NAV via a CCIP-Read gateway (see 6a).
