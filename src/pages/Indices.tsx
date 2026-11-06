@@ -42,8 +42,8 @@ export function Indices() {
               <tr key={f.address} className="click">
                 <td>
                   <Link to={`/index/${f.address}`} style={{ textDecoration: 'none' }}>
-                    <span style={{ fontWeight: 700, fontSize: 17 }}>{f.name}</span>{' '}
-                    <span className="sym muted" style={{ fontSize: 13 }}>{f.symbol}</span>
+                    <span style={{ fontWeight: 700, fontSize: 20 }}>{f.name}</span>{' '}
+                    <span className="sym muted" style={{ fontSize: 19 }}>{f.symbol}</span>
                   </Link>
                   <FundEnsName fund={f.address} symbol={f.symbol} name={f.name} />
                 </td>
@@ -242,7 +242,7 @@ function FundEnsName({ fund, symbol, name }: { fund: Address; symbol: string; na
   const ens = useFundEns(fund, symbol || undefined, name === '…' ? undefined : name)
   if (!ens.data) return null
   return (
-    <div className="mono muted" style={{ fontSize: 12, marginTop: 2 }}>
+    <div className="mono muted" style={{ fontSize: 17, marginTop: 2 }}>
       <a href={ensAppUrl(ens.data.name)} target="_blank" rel="noopener noreferrer">{ens.data.name} ↗</a>
     </div>
   )
@@ -282,7 +282,7 @@ function EnsRecords({ ens, fund, checks }: { ens: FundEns; fund: Address; checks
   ]
   return (
     <>
-      <div style={{ fontWeight: 700, fontSize: 17 }}>
+      <div style={{ fontWeight: 700, fontSize: 20 }}>
         <a href={ensAppUrl(ens.name)} target="_blank" rel="noopener noreferrer">{ens.name} ↗</a>
       </div>
       {rows.map(([k, v, ok]) => (
