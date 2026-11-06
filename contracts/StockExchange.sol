@@ -5,13 +5,13 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ReceiverTemplate} from "./ReceiverTemplate.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IStockVenue} from "./interfaces/IStockVenue.sol";
 
-/// @notice Curated mock stock venue with funded USDC redemptions and authenticated CRE pricing.
+/// @notice Curated wrapped CrossChainToken inventory venue with funded USDC redemptions and authenticated CRE pricing.
 contract StockExchange is IStockVenue, ReceiverTemplate, Ownable2Step, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -37,7 +37,7 @@ contract StockExchange is IStockVenue, ReceiverTemplate, Ownable2Step, Reentranc
     uint256 public maxPriceAge = 96 hours;
     uint256 public maxMoveBps = 500;
     uint256 public spreadBps = 50;
-    uint256 public override holdSeconds = 600;
+    uint256 public override holdSeconds = 60;
     address public trustedFactory;
     mapping(address => bool) public registeredFunds;
     mapping(address => mapping(address => uint256)) public lastBuyTime;
@@ -48,6 +48,9 @@ contract StockExchange is IStockVenue, ReceiverTemplate, Ownable2Step, Reentranc
     mapping(bytes32 => bool) private _symbols;
 
     error InvalidAddress();
+    error InvalidDecimals();
+    error AlreadyListed(address token);
+    error InsufficientInventory(uint256 available, uint256 required);
     error InvalidArrayLength();
     error InvalidPrice();
     error InvalidSymbol();
@@ -78,6 +81,8 @@ contract StockExchange is IStockVenue, ReceiverTemplate, Ownable2Step, Reentranc
     event FundRegistered(address indexed fund);
     event Bought(address indexed buyer, address indexed token, uint256 usdcIn, uint256 tokensOut);
     event Sold(address indexed seller, address indexed token, uint256 tokensIn, uint256 usdcOut);
+    event InventoryWithdrawn(address indexed token, uint256 amount, address indexed to);
+    event ReserveWithdrawn(uint256 amount, address indexed to);
 
     constructor(address initialOwner, address usdc_, address forwarder)
         ReceiverTemplate(initialOwner, forwarder)
@@ -95,16 +100,17 @@ contract StockExchange is IStockVenue, ReceiverTemplate, Ownable2Step, Reentranc
         Ownable2Step._transferOwnership(newOwner);
     }
 
-    /// @notice Permanently lists a newly deployed mock stock (at most 50 total).
-    function listStock(string calldata name, string calldata symbol, uint256 initialPrice)
-        external onlyOwner returns (address)
+    /// @notice Permanently lists an external wrapped CrossChainToken (at most 50 total).
+    function listExternalStock(address token, string calldata name, string calldata symbol, uint256 initialPrice)
+        external onlyOwner
     {
-        return _listStock(name, symbol, initialPrice);
-    }
-
-    function _listStock(string memory name, string memory symbol, uint256 initialPrice)
-        private returns (address token)
-    {
+        if (token == address(0) || token == usdc || token.code.length == 0) revert InvalidAddress();
+        if (_stocks[token].listed) revert AlreadyListed(token);
+        try IERC20Metadata(token).decimals() returns (uint8 decimals_) {
+            if (decimals_ != 18) revert InvalidDecimals();
+        } catch {
+            revert InvalidDecimals();
+        }
         if (_tokens.length >= 50) revert StockLimit();
         if (initialPrice == 0) revert InvalidPrice();
         if (bytes(symbol).length == 0 || bytes(symbol).length > 32 || bytes(name).length > 128) {
@@ -113,7 +119,6 @@ contract StockExchange is IStockVenue, ReceiverTemplate, Ownable2Step, Reentranc
         bytes32 key = keccak256(bytes(symbol));
         if (_symbols[key]) revert DuplicateSymbol();
         _symbols[key] = true;
-        token = address(new StockToken(name, symbol, address(this)));
         _stocks[token] = Stock(token, name, symbol, initialPrice, uint64(block.timestamp), true);
         _tokens.push(token);
         emit StockListed(token, name, symbol, initialPrice);
@@ -274,9 +279,11 @@ contract StockExchange is IStockVenue, ReceiverTemplate, Ownable2Step, Reentranc
         if (usdcIn == 0) revert InvalidAmount();
         tokensOut = quoteBuy(token, usdcIn);
         if (tokensOut == 0 || tokensOut < minTokensOut) revert SlippageExceeded();
+        uint256 available = IERC20(token).balanceOf(address(this));
+        if (available < tokensOut) revert InsufficientInventory(available, tokensOut);
         lastBuyTime[msg.sender][token] = block.timestamp;
         IERC20(usdc).safeTransferFrom(msg.sender, address(this), usdcIn);
-        StockToken(token).mint(msg.sender, tokensOut);
+        IERC20(token).safeTransfer(msg.sender, tokensOut);
         emit Bought(msg.sender, token, usdcIn, tokensOut);
     }
 
@@ -296,9 +303,35 @@ contract StockExchange is IStockVenue, ReceiverTemplate, Ownable2Step, Reentranc
         if (usdcOut < minUsdcOut) revert SlippageExceeded();
         uint256 available = reserveBalance();
         if (available < usdcOut) revert InsufficientReserve(available, usdcOut);
-        StockToken(token).burn(msg.sender, tokenIn);
+        uint256 beforeBalance = IERC20(token).balanceOf(address(this));
+        IERC20(token).safeTransferFrom(msg.sender, address(this), tokenIn);
+        uint256 afterBalance = IERC20(token).balanceOf(address(this));
+        if (afterBalance < beforeBalance || afterBalance - beforeBalance != tokenIn) revert InvalidAmount();
         IERC20(usdc).safeTransfer(msg.sender, usdcOut);
         emit Sold(msg.sender, token, tokenIn, usdcOut);
+    }
+
+    /// @notice Returns listed stock inventory, including any tokens transferred directly to the venue.
+    function inventoryOf(address token) external view returns (uint256) {
+        if (!_stocks[token].listed) revert UnlistedStock(token);
+        return IERC20(token).balanceOf(address(this));
+    }
+
+    /// @notice Withdraws listed stock inventory without requiring a fresh price.
+    function withdrawInventory(address token, uint256 amount, address to) external onlyOwner nonReentrant {
+        if (!_stocks[token].listed) revert UnlistedStock(token);
+        if (to == address(0)) revert InvalidAddress();
+        if (amount == 0) revert InvalidAmount();
+        IERC20(token).safeTransfer(to, amount);
+        emit InventoryWithdrawn(token, amount, to);
+    }
+
+    /// @notice Withdraws USDC from the redemption reserve.
+    function withdrawReserve(uint256 amount, address to) external onlyOwner nonReentrant {
+        if (to == address(0)) revert InvalidAddress();
+        if (amount == 0) revert InvalidAmount();
+        IERC20(usdc).safeTransfer(to, amount);
+        emit ReserveWithdrawn(amount, to);
     }
 
     /// @notice Returns the permanent registry length.

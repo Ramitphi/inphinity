@@ -8,4 +8,3 @@ arc-testnet-settings:
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.json"
-    secrets-path: "../secrets.yaml"
