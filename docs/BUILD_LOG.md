@@ -52,7 +52,16 @@ The orchestrator session holds the testnet-only team wallet `0xC658A9Bd5ADE6CCd8
 | 19:47 (14:17) | **First live Chainlink CRE report on Arc**: `cre workflow simulate --broadcast` → Chainlink forwarder → StockExchange; 15 prices written, `lastReportAt` set. Cost 278,986 gas × 25 gwei ≈ 0.007 USDC per update | [report tx](https://testnet.arcscan.app/tx/0xd2a96bfedcf3733d8da9e38332221142d5996ebf6f8307aa78b9936d5779375e) |
 | 19:50 (14:20) | CRE runbook: measured cost, `.env` override gotcha (an empty `CRE_ETH_PRIVATE_KEY=` line beats an exported variable), `run-loop.sh` refuses an empty key | `ae425fc` |
 | 19:50 (14:20) | Audit finding: CCIP naming fee quote jumped from ~0.5 to ~21.9 USDC (testnet fee data); registrar holds 1.96 USDC, so new funds skip naming until topped up. Fund creation is unaffected | [ArcEnsRegistrar](https://testnet.arcscan.app/address/0x39437a4f9c2ed49c5c3310681d440b26a0cb23cd) |
+| 19:56–20:24 (14:26–14:54) | **All feature PRs merged into `main`** by Ramit, in order: #10 CCIP 9M gas (`e0ce455`), #12 8 more stocks (`2ba8166`), #13 readability into #9 (`20c89bd`), #11 build log (`1379d9c`), #9 16-stock UI + admin bridging (`d47b646`), #2 Chainlink CRE price feed (`502e12c`). #8 (unused CCIP variant) closed. Each checked for a clean merge and a passing build first | [PRs](https://github.com/Ramitphi/inphinity/pulls?q=is%3Apr) |
+| 20:12 (14:42) | Independent review of PR #2: only 8 `cre/` files change vs main (GitHub's 38-file count was a stale base); CRE logic matches the exchange; 20/20 tests. Risk noted: mock forwarder + public simulator author means anyone can push bounded prices; keep the reserve small, roll back with `setPriceSource(0)` after judging | [review](https://github.com/Ramitphi/inphinity/pull/2#issuecomment-6687549153) |
+| 20:20 (14:50) | NAV explainer `docs/NAV.md` (PR #14): what moves NAV and NAV per share, spread paid by the investor, fee as dilution, stale-price freeze, known ZeroNAV edge after a full exit | [PR #14](https://github.com/Ramitphi/inphinity/pull/14) |
+| 21:00 (15:30) | **Issuer toolkit copied into Arc Studio**: all 14 files of `issuer/` (CCTP issuance on Base Sepolia, bridging to Arc, exchange setup, demo-fund scripts, deployment record) saved in the Studio workspace next to the contracts; every file checked byte-for-byte against GitHub `main`. Nothing installed or run in Studio | Studio app `7582b931…` |
+| 21:20–21:35 (15:50–16:05) | **Full Arc Studio sync with GitHub `main`**: compared all 171 files (31 already identical); uploaded 64 files in two batches: the CCIP contracts (`contracts/ccip/`), ENS tooling (`ens/`), Chainlink CRE workflow (`cre/`), the full web app (`src/`, `index.html`, `package.json`, `bun.lock`) and docs (`BUILD_LOG`, `DECISIONS`, `NAV`, `NAV_BRAINSTORM`, design mockups). Studio ran `bun install` + `bun run build`: passes, so the Studio preview now runs the real Inphinity app. Not uploaded: 26 screenshot PNGs (on GitHub) and `cre/.env.example` (the CLI refuses `.env*` files) | Studio app `7582b931…` |
+| 21:05–21:41 (15:35–16:11) | Merged: #16 Create page offers only stocks with exchange inventory (`132e44e`), #17 Vercel SPA rewrite (`2fbc1ae`), #20 wallet auto-switches to Arc before transactions (`14531dd`). **App hosted on Vercel** | [inphinity.vercel.app](https://inphinity.vercel.app) |
+| 21:28 (15:58) | **CRE loop running** on Ramit's laptop (`run-loop.sh`, every 5 min) after a fix accepting the key with or without `0x`; live market moves land onchain (e.g. tNVDA 181.60 → 189.99), and the 5% cap visibly clamps tAMD (404.40 → 424.62 toward 445.02) | [report tx](https://testnet.arcscan.app/tx/0xa7f89be402cdb17989978331ac60a34f09de08e669eacd04c5fbc5fd3a5f5847) |
+| by 21:46 (16:16) | Ramit tops up the CCIP registrar to 41.96 USDC (fee ~21.7 USDC per naming) and the CRE gas wallet to 40.9 USDC. Fund **RMT** (created earlier that evening) had been skipped by CCIP naming (fee balance too low) | [ArcEnsRegistrar](https://testnet.arcscan.app/address/0x39437a4f9c2ed49c5c3310681d440b26a0cb23cd) |
 | 21:55 (16:25) | **CCIP naming fallback** built (`ens/src/fallback.ts`, `fallback-loop.sh` every 30 min). It names a fund via the relayer only when CCIP can't: `NamingSkipped`, or a message still unnamed after 2 h. A stored receiver failure gets `retry(messageId)`. Lock file and a re-check before each write, so no double names. Live dry run: BCHIP and AIBLD named; **RMT** (skipped, fee too low) and **AICHIP** (`ccipdemo`, CCIP message still FAILED, never manually executed, so unnamed) are queued for the fallback. Dedicated key needs only UserRegistry `ROLE_REGISTRAR` plus resolver `SET_ADDRESS`, `SET_TEXT` and `LINK` (`grant-fallback-roles.ts`), ~4.1M Sepolia gas per naming. No transactions sent | `c793b70`, [CCIP msg ccipdemo](https://ccip.chain.link/msg/0x08a922cce895778a8a557d3ffa545b08b5f2b3cd4c781ef9b21976316327b926) |
+| 23:29–23:32 (17:59–18:02) | Merged: #21 ENS profile page per fund (`ae7c591`), #19 daily 1D change from onchain price history (`bb549b2`), #22 CCIP naming fallback (`f01b5e1`), #18 `run-loop.sh` key fix (`be0de48`) | [PRs](https://github.com/Ramitphi/inphinity/pulls?q=is%3Apr+is%3Amerged) |
 
 ## Live addresses
 
@@ -69,11 +78,11 @@ The orchestrator session holds the testnet-only team wallet `0xC658A9Bd5ADE6CCd8
 ## Open items (updated as they close)
 
 - [x] Chainlink CRE: laptop simulation passes, `setExpectedAuthor` + `setPriceSource(Feed)`, live `--broadcast` report on Arc
-- [ ] CRE `run-loop.sh` running through the demo (US market opens 20:00 IST)
-- [ ] Top up the CCIP registrar before the demo (fee ~21.9 USDC at 19:50 IST)
+- [x] CRE `run-loop.sh` running (since 21:28 IST); keep it running through judging
+- [x] CCIP registrar topped up to 41.96 USDC (re-check the fee before the demo)
 - [ ] Inventory for the 8 newer stocks (tNFLX…tORCL)
 - [x] CCIP naming retest (`aibuilders`) delivered on Sepolia
-- [ ] Public hosting of the web app
+- [x] Public hosting of the web app: https://inphinity.vercel.app
+- [x] Arc Studio project synced with GitHub `main` (21:35 IST; incremental re-sync after the latest merges pending)
 - [ ] CCIP fallback: grant the dedicated key its roles, fund it (~0.05 Sepolia ETH), start `ens/fallback-loop.sh` on Ramit's Mac (names RMT and AICHIP on its first run)
-- [ ] Arc Studio project synced with GitHub `main`
 - [ ] README, architecture diagram, demo video, ETHGlobal submission
