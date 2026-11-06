@@ -2,3 +2,4 @@
 node_modules/
 *.wasm
 binary.wasm.br.b64
+run-loop.log

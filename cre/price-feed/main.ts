@@ -9,7 +9,9 @@
  *   4. Encode abi.encode(address[] tokens, uint256[] prices, uint64 timestamp), the exact layout
  *      StockExchange._processReport decodes, and deliver it with a signed report via writeReport.
  *
- * A stock whose quote fails is skipped; the rest of the batch is still written.
+ * A stock whose quote fails, is stale, is not in USD, or cannot satisfy the contract's rules
+ * (timestamp, move cap) is skipped or clamped; the rest of the batch is still written. One bad stock
+ * must never revert the whole report, because StockExchange applies the batch all-or-nothing.
  */
 import {
   bytesToHex,
@@ -60,7 +62,7 @@ export const configSchema = z.object({
   readBlock: z.enum(["latest", "finalized"]).default("latest"),
   yahoo: z.object({
     /** Chart endpoint base, the ticker is appended: {baseUrl}/AAPL */
-    baseUrl: z.string().url().default("https://query1.finance.yahoo.com/v8/finance/chart"),
+    baseUrl: z.string().regex(/^https:\/\/[^\s]+$/, "must be an https URL").default("https://query1.finance.yahoo.com/v8/finance/chart"),
     /** Per-request timeout, e.g. "8s" (the platform maximum is 10s). */
     requestTimeout: z.string().default("8s"),
     /** If > 0, nodes may share one cached response up to this many seconds old (max 600). 0 = every node fetches its own. */
@@ -81,6 +83,12 @@ export const configSchema = z.object({
    * Without this the contract would revert the entire report.
    */
   onMoveExceeded: z.enum(["clamp", "skip"]).default("clamp"),
+  /**
+   * Reject a quote whose Yahoo `regularMarketTime` is older than this many seconds (0 disables the check).
+   * Default 4 days: long enough to keep serving Friday's close over a weekend, short enough to drop a
+   * delisted or frozen ticker. A quote with no `regularMarketTime` at all is always rejected.
+   */
+  maxQuoteAgeSeconds: z.number().int().min(0).default(4 * 24 * 60 * 60),
 })
 
 export type Config = z.output<typeof configSchema>
@@ -143,6 +151,9 @@ type QuoteRequest = {
   timeout: string
   cacheMaxAgeSeconds: number
   what: string
+  /** DON time in unix seconds (same value on every node), for the freshness check. */
+  nowSeconds: number
+  maxQuoteAgeSeconds: number
 }
 
 type HttpRequest = {
@@ -153,7 +164,44 @@ type HttpRequest = {
   cacheSettings?: { store: boolean; maxAge: string }
 }
 
-/** GET /v8/finance/chart/{ticker} -> chart.result[0].meta.regularMarketPrice. Returns USD * 1e6. */
+/**
+ * Validates a Yahoo chart response body and returns the price in USDC base units (USD * 1e6).
+ * Throws (so the stock is skipped) on: missing result, non-USD currency, non-positive or
+ * non-finite price, missing or stale regularMarketTime, or a price that rounds to zero.
+ * Pure function, exported for unit tests.
+ */
+export const parseYahooQuote = (
+  body: unknown,
+  opts: { nowSeconds: number; maxQuoteAgeSeconds: number; what: string },
+): bigint => {
+  type Meta = { regularMarketPrice?: unknown; regularMarketTime?: unknown; currency?: unknown }
+  const chart = (body as { chart?: { result?: { meta?: Meta }[] | null } } | null)?.chart
+  const meta = chart?.result?.[0]?.meta
+  if (!meta) throw new Error(`${opts.what}: no chart result`)
+
+  if (meta.currency !== undefined && meta.currency !== null && meta.currency !== "USD") {
+    throw new Error(`${opts.what}: currency ${String(meta.currency)} is not USD`)
+  }
+
+  const price = meta.regularMarketPrice
+  if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
+    throw new Error(`${opts.what}: no valid regularMarketPrice`)
+  }
+
+  const quoteTime = meta.regularMarketTime
+  if (typeof quoteTime !== "number" || !Number.isFinite(quoteTime) || quoteTime <= 0) {
+    throw new Error(`${opts.what}: no regularMarketTime`)
+  }
+  if (opts.maxQuoteAgeSeconds > 0 && opts.nowSeconds - quoteTime > opts.maxQuoteAgeSeconds) {
+    throw new Error(`${opts.what}: stale quote (${opts.nowSeconds - quoteTime}s old)`)
+  }
+
+  const scaled = parseUnits(price.toFixed(PRICE_DECIMALS), PRICE_DECIMALS)
+  if (scaled <= 0n) throw new Error(`${opts.what}: price rounds to zero`)
+  return scaled
+}
+
+/** GET /v8/finance/chart/{ticker}, runs on every node. Returns USD * 1e6. */
 const fetchUsdPrice = (sendRequester: HTTPSendRequester, req: QuoteRequest): bigint => {
   const request: HttpRequest = {
     url: req.url,
@@ -174,14 +222,30 @@ const fetchUsdPrice = (sendRequester: HTTPSendRequester, req: QuoteRequest): big
   } catch {
     throw new Error(`${req.what}: response is not JSON`)
   }
-  const chart = (body as { chart?: { result?: { meta?: { regularMarketPrice?: unknown } }[] | null } } | null)?.chart
-  const price = chart?.result?.[0]?.meta?.regularMarketPrice
-  if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
-    throw new Error(`${req.what}: no valid regularMarketPrice`)
-  }
-  const scaled = parseUnits(price.toFixed(PRICE_DECIMALS), PRICE_DECIMALS)
-  if (scaled <= 0n) throw new Error(`${req.what}: price rounds to zero`)
-  return scaled
+  return parseYahooQuote(body, { nowSeconds: req.nowSeconds, maxQuoteAgeSeconds: req.maxQuoteAgeSeconds, what: req.what })
+}
+
+/**
+ * Applies StockExchange's move cap: |next - previous| <= previous * maxMoveBps / 10000 (rounded down,
+ * same as Math.mulDiv in the contract). Returns the price to send, or null to skip the stock.
+ * Pure function, exported for unit tests.
+ */
+export const applyMoveCap = (
+  previous: bigint,
+  next: bigint,
+  maxMoveBps: bigint,
+  mode: "clamp" | "skip",
+): { price: bigint; clamped: boolean } | null => {
+  if (next <= 0n) return null // the contract rejects a zero price
+  if (previous === 0n) return { price: next, clamped: false } // unreachable: listing requires a non-zero price
+  const maxMove = (previous * maxMoveBps) / 10000n
+  const upper = previous + maxMove
+  const lower = previous - maxMove
+  if (next <= upper && next >= lower) return { price: next, clamped: false }
+  if (mode === "skip") return null
+  const clamped = next > upper ? upper : lower
+  if (clamped <= 0n) return null // the contract rejects a zero price
+  return { price: clamped, clamped: true }
 }
 
 // ---------------------------------------------------------------------------
@@ -243,20 +307,36 @@ export const onCronTrigger = (runtime: Runtime<Config>): string => {
     price: s.price,
     updatedAt: s.updatedAt,
   }))
+  // The contract rejects duplicate tokens; getStocks() never returns any, but stay defensive.
+  const seen = new Set<string>()
+  stocks = stocks.filter((s) => {
+    const key = s.token.toLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
   if (stocks.length === 0) {
     runtime.log("No stocks listed on the exchange. Nothing to do.")
     return "no stocks"
   }
   const limit = Math.min(config.maxStocksPerRun, CONTRACT_MAX_TOKENS)
   if (stocks.length > limit) {
-    runtime.log(`Exchange lists ${stocks.length} stocks; only the first ${limit} are updated per run.`)
-    stocks = stocks.slice(0, limit)
+    // A run can make at most `limit` HTTP calls, so update the stalest prices first. Over consecutive
+    // runs every listed stock rotates through, instead of the same stocks always being left out.
+    // Ties keep getStocks() order, so the selection is deterministic across DON nodes.
+    stocks = stocks
+      .map((s, i) => ({ s, i }))
+      .sort((a, b) => (a.s.updatedAt < b.s.updatedAt ? -1 : a.s.updatedAt > b.s.updatedAt ? 1 : a.i - b.i))
+      .slice(0, limit)
+      .map(({ s }) => s)
+    runtime.log(`Exchange lists more than ${limit} stocks; updating the ${limit} with the oldest prices this run.`)
   }
 
   // --- 2. Report timestamp --------------------------------------------------------------------
   // The contract requires: stock.updatedAt < timestamp <= block.timestamp (for every token in the report).
   // DON time is consensus time (runtime.now(), never Date.now()); the skew keeps it from running ahead of the chain.
-  const timestamp = BigInt(Math.floor(runtime.now().getTime() / 1000)) - BigInt(config.timestampSkewSeconds)
+  const nowSeconds = Math.floor(runtime.now().getTime() / 1000)
+  const timestamp = BigInt(nowSeconds) - BigInt(config.timestampSkewSeconds)
 
   // --- 3. Per-stock USD price (median across nodes), validate ---------------------------------
   const httpClient = new HTTPClient()
@@ -286,6 +366,8 @@ export const onCronTrigger = (runtime: Runtime<Config>): string => {
           timeout: y.requestTimeout,
           cacheMaxAgeSeconds: y.cacheMaxAgeSeconds,
           what: `Quote ${ticker}`,
+          nowSeconds,
+          maxQuoteAgeSeconds: config.maxQuoteAgeSeconds,
         })
         .result()
     } catch (err) {
@@ -294,24 +376,15 @@ export const onCronTrigger = (runtime: Runtime<Config>): string => {
     }
 
     // The contract caps each update at maxMoveBps of the stored price and reverts the whole report otherwise.
-    if (stock.price > 0n) {
-      const maxMove = (stock.price * maxMoveBps) / 10000n
-      const upper = stock.price + maxMove
-      const lower = stock.price - maxMove
-      if (price6 > upper || price6 < lower) {
-        if (config.onMoveExceeded === "skip") {
-          skipped.push(`${stock.symbol} (move ${price6} vs ${stock.price} exceeds cap)`)
-          continue
-        }
-        const clamped = price6 > upper ? upper : lower
-        runtime.log(`${stock.symbol}: target ${price6} exceeds the ${maxMoveBps} bps move cap; clamping to ${clamped}`)
-        price6 = clamped
-        if (price6 === 0n) {
-          skipped.push(`${stock.symbol} (clamped price is zero)`)
-          continue
-        }
-      }
+    const capped = applyMoveCap(stock.price, price6, maxMoveBps, config.onMoveExceeded)
+    if (capped === null) {
+      skipped.push(`${stock.symbol} (move ${price6} vs ${stock.price} exceeds the ${maxMoveBps} bps cap)`)
+      continue
     }
+    if (capped.clamped) {
+      runtime.log(`${stock.symbol}: target ${price6} exceeds the ${maxMoveBps} bps move cap; clamping to ${capped.price}`)
+    }
+    price6 = capped.price
 
     runtime.log(`${stock.symbol} (${ticker}): ${price6} USDC base units`)
     tokens.push(stock.token)

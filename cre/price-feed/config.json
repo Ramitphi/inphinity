@@ -16,5 +16,6 @@
   "tickerOverrides": {},
   "maxStocksPerRun": 15,
   "timestampSkewSeconds": 30,
-  "onMoveExceeded": "clamp"
+  "onMoveExceeded": "clamp",
+  "maxQuoteAgeSeconds": 345600
 }

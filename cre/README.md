@@ -1,158 +1,193 @@
 # US stock price feed (Chainlink CRE)
 
-A scheduled Chainlink CRE workflow (TypeScript SDK) that keeps the prices on the `StockExchange` contract up to date from Yahoo Finance quotes. No API key is needed. Prices are in USD, with no currency conversion.
+A Chainlink CRE workflow (TypeScript SDK) that acts as the orchestration layer between an external API (Yahoo Finance) and a blockchain (Arc Testnet): every run it reads the listed stocks from the `StockExchange` contract, fetches each USD price with DON median consensus, and writes a signed report that updates the on-chain prices.
 
-## What it does
+- Exchange: `StockExchange` `0x93662de514b981f8c7bf97085e359e0f18034804`, Arc Testnet (chain 5042002, CRE chain name `arc-testnet`)
+- Workflow: `price-feed/main.ts`, workflow name `stock-price-feed`, target `arc-testnet-settings`
+- No API key is needed for Yahoo. Prices are USD, with no currency conversion.
 
-Every tick, `price-feed/main.ts`:
+## What one run does
 
-1. Reads the listed stocks from `StockExchange.getStocks()` on `arc-testnet` (plus `maxMoveBps()`).
-2. For each stock, fetches the USD price from `https://query1.finance.yahoo.com/v8/finance/chart/<TICKER>` (`chart.result[0].meta.regularMarketPrice`). The default ticker is the token symbol without the leading `t` (`tAAPL` -> `AAPL`, `tSPY` -> `SPY`). Override it per stock in `config.json` if needed.
-3. Each HTTP call runs on every node of the DON and the nodes agree on the **median**.
-4. Expresses the price in USDC base units (6 decimals) per whole token. Example: USD 205.50 gives `205500000`.
-5. Validates (non-zero, contract timestamp and move-cap rules, see below) and encodes the report **exactly as the contract decodes it**:
+1. Reads `getStocks()` and `maxMoveBps()` from the exchange.
+2. For each stock, `GET https://query1.finance.yahoo.com/v8/finance/chart/<TICKER>` on every node; the nodes agree on the **median** of `chart.result[0].meta.regularMarketPrice`. Ticker = symbol without the leading `t` (`tAAPL` -> `AAPL`), overridable in `config.json` (`tickerOverrides`).
+3. Converts to USDC base units (6 decimals) per whole 18-decimal token: USD 205.50 -> `205500000`.
+4. Filters or clamps each stock so the contract cannot reject the batch (table below).
+5. Encodes `abi.encode(address[] tokens, uint256[] prices, uint64 timestamp)`, exactly what `StockExchange._processReport` decodes, signs it as a CRE report and calls `writeReport`. The forwarder then calls `StockExchange.onReport`.
 
-   ```
-   abi.encode(address[] tokens, uint256[] prices, uint64 timestamp)
-   ```
+The contract applies a report all-or-nothing, so any per-stock problem must be handled in the workflow:
 
-6. Signs it as a CRE report and writes it to the exchange with `writeReport`. The Chainlink forwarder then calls `StockExchange.onReport`.
-
-A stock whose quote fails (HTTP error, bad value, or no consensus) is **skipped and logged**. The run continues with the other stocks.
-
-### Rules taken from `StockExchange.sol`
-
-| Contract rule | What the workflow does |
+| Contract rule (`StockExchange.sol`) | Workflow behaviour |
 | --- | --- |
-| Price unit: USDC base units (6 decimals) per whole 18-decimal token | `price6 = USD price * 1e6`, rounded to 6 decimals |
-| Timestamp must be newer than the stock's `updatedAt` and not after `block.timestamp` | Uses DON time (`runtime.now()`) minus `timestampSkewSeconds` (default 30). A stock whose `updatedAt` is not older than that is skipped for the run |
-| Prices must be non-zero | Zero is never sent |
-| A move larger than `maxMoveBps` (default 5%) reverts the **whole** report | The workflow reads `maxMoveBps()` and, by default, **clamps** the price to the allowed move (so it converges over several runs). Set `"onMoveExceeded": "skip"` to leave such stocks out instead |
-| At most 50 tokens, no duplicates, only listed tokens | Tokens come from `getStocks()`; at most `maxStocksPerRun` (default and maximum 15, the CRE limit of HTTP requests per execution) |
-| Reports are ignored in Admin mode, and Feed mode needs a workflow identity | See "Contract settings" below |
+| Price = USDC base units per whole token, non-zero | `USD * 1e6` rounded to 6 dp; a zero or negative price is never sent |
+| `timestamp > stock.updatedAt` and `timestamp <= block.timestamp` | `timestamp = DON time (runtime.now()) - timestampSkewSeconds (30)`. A stock whose `updatedAt` is not older is skipped (no HTTP call spent on it) |
+| `|next - prev| <= prev * maxMoveBps / 10000` (rounded down), else the whole report reverts | Reads `maxMoveBps()` live. Default `onMoveExceeded: "clamp"` sends the furthest allowed price (converges over several runs); `"skip"` leaves the stock out |
+| Only listed tokens, no duplicates, at most 50 | Tokens come from `getStocks()`, de-duplicated, at most `maxStocksPerRun` (15 = CRE HTTP calls per execution) |
+| Reports ignored unless `priceSource == Feed` (1) | See "Owner actions" |
 
-## Schedule
-
-`config.json` holds three UTC cron expressions that together cover **every 5 minutes, Monday to Friday, 13:30 to 21:00 UTC**. NYSE hours (9:30 to 16:00 Eastern) are 13:30 to 20:00 UTC in summer time and 14:30 to 21:00 UTC in winter time, so the window covers both. Outside the real session Yahoo keeps returning the last price, so the workflow only rewrites the same value.
-
-- `30,35,40,45,50,55 13 * * 1-5`
-- `*/5 14-20 * * 1-5`
-- `0 21 * * 1-5`
-
-Edit `schedules` to change it (CRE's minimum interval is 30 seconds). US market holidays are not modelled.
+A quote is skipped (logged as `Skipped <symbol> (...)`) when: HTTP error, non-JSON body, no chart result, `currency` not USD, invalid price, no `regularMarketTime`, or the quote is older than `maxQuoteAgeSeconds` (default 4 days, so Friday's close is still served over a weekend). If every stock is skipped the run writes nothing (`no prices`).
 
 ## Files
 
 | File | Purpose |
 | --- | --- |
-| `project.yaml` | Project settings: target `arc-testnet-settings` with the `arc-testnet` RPC |
-| `.env.example` | Names of the environment variables to put in `cre/.env` (git-ignored) |
+| `project.yaml` | Target `arc-testnet-settings` with the `arc-testnet` RPC |
+| `.env.example` | Variables for `cre/.env` (git-ignored) |
+| `run-loop.sh` | Re-runs the simulation on a timer to keep prices live during the demo |
 | `price-feed/workflow.yaml` | Workflow name and artifact paths |
-| `price-feed/config.json` | Schedules, exchange address, Yahoo endpoint, ticker overrides, limits |
+| `price-feed/config.json` | Schedules, exchange address, Yahoo endpoint, limits |
 | `price-feed/main.ts` | The workflow |
-| `price-feed/main.test.ts` | Offline test with mocked chain and provider (`bun test`) |
+| `price-feed/main.test.ts` | Offline tests (mocked chain and Yahoo) |
+| `price-feed/scripts/status.ts` | Read-only status: price source, identity settings, prices vs Yahoo, recent events |
 
-## Steps
+## Runbook
 
-Run these from your own machine, from the `cre/` folder unless noted.
+All commands from `cre/` unless noted.
 
-### 1. Install the CRE CLI and Bun
+### 1. Prerequisites
 
-```bash
-curl -sSL https://app.chain.link/cre/install.sh | bash
-cre version
-```
+- [Bun](https://bun.sh) 1.2+.
+- CRE CLI ([install guide](https://docs.chain.link/cre/getting-started/cli-installation/macos-linux)):
+  ```bash
+  curl -sSL https://app.chain.link/cre/install.sh | bash
+  cre version
+  ```
+- A CRE account: `cre login` (browser), then `cre whoami`. For headless use, export `CRE_API_KEY` instead.
+- For `--broadcast`: an Arc Testnet wallet with some USDC (USDC is Arc's gas token; each 15-stock report costs about 0.007 USDC, measured). Any wallet works: the exchange checks the forwarder and the report metadata, not who paid the gas. Use a throwaway key, not the exchange owner key.
+- Workflow dependencies:
+  ```bash
+  (cd price-feed && bun install && bun test)
+  ```
 
-You also need [Bun](https://bun.sh) (the TypeScript SDK compiles with it).
-
-### 2. Log in
-
-```bash
-cre login
-cre whoami
-```
-
-`cre whoami` also shows whether your organization has deploy access.
-
-### 3. Install the workflow dependencies
-
-```bash
-cd price-feed
-bun install
-cd ..
-```
-
-### 4. Environment
+### 2. Environment
 
 ```bash
 cp .env.example .env
-# set CRE_ETH_PRIVATE_KEY=<a funded Arc Testnet test wallet key> (only needed with --broadcast and for deploy)
+# edit .env: CRE_ETH_PRIVATE_KEY=0x<funded Arc Testnet test wallet key>
 ```
 
-Never commit `.env`. The workflow needs no API key.
+| Variable | Needed for |
+| --- | --- |
+| `CRE_ETH_PRIVATE_KEY` | `--broadcast` and `cre workflow deploy` (the wallet that sends the forwarder transaction) |
+| `CRE_API_KEY` | Optional, replaces `cre login` for non-interactive runs |
 
-### 5. Exchange address
+The CLI loads `cre/.env` itself, and a `CRE_ETH_PRIVATE_KEY=` line there **overrides an exported shell variable, even when it is empty** (as copied from `.env.example`). The CLI then falls back to its built-in, unfunded default key and prints `Using default private key for chain write simulation`. Either fill the line in or delete it. `run-loop.sh` refuses to start with an empty or malformed line.
 
-`price-feed/config.json` already points at the Arc Testnet `StockExchange` (`0x93662de514b981f8c7bf97085e359e0f18034804`). Change `exchangeAddress` if you redeploy.
-
-### 6. Simulate
+To create a fresh gas wallet without the key ever appearing on screen (from `cre/`; prints only the address):
 
 ```bash
-cre workflow simulate price-feed --target arc-testnet-settings
+cd price-feed && bun -e 'import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";import { existsSync, writeFileSync } from "fs";const f="../.env";if (existsSync(f)) { console.log("cre/.env already exists, not touching it"); process.exit(1) };const pk = generatePrivateKey();writeFileSync(f, `CRE_ETH_PRIVATE_KEY=${pk}\n`, { mode: 0o600 });console.log("Gas wallet address:", privateKeyToAccount(pk).address);' ; cd ..
 ```
 
-Pick a cron trigger when asked, or run non-interactively:
+### 3. Dry-run simulation (no transaction)
 
 ```bash
 cre workflow simulate price-feed --target arc-testnet-settings --non-interactive --trigger-index 0
 ```
 
-The simulation always runs the handler once immediately, whatever the time of day. Without `--broadcast` it is a dry run: it reads the chain, calls Yahoo Finance and builds the report, but sends no transaction. To send the transaction, fund the wallet behind `CRE_ETH_PRIVATE_KEY` with Arc Testnet USDC (USDC is the gas token) and add `--broadcast`. The exchange must have at least one listed stock, otherwise the run ends with "no stocks".
+Expected log lines: one `tXXXX (XXXX): <price> USDC base units` per stock and a final `Wrote 15 prices (0 skipped)`. `--trigger-index 0` runs the first cron handler once, immediately, whatever the time of day or the cron schedule.
 
-Contract settings for simulation (see the next section): the exchange's forwarder must be the **mock** forwarder, the exchange stays in **Admin** mode, and do **not** set an expected author or workflow ID (the mock forwarder sends no metadata, so any identity check would revert).
+### 4. Owner actions on `StockExchange` (orchestrator, owner key)
 
-### 7. Contract settings (owner calls on `StockExchange`)
+State before setup: forwarder = simulation `MockKeystoneForwarder` `0x6E9EE680ef59ef64Aa8C7371279c27E496b5eDc1`, `priceSource = 0` (Admin), no identity set.
 
-| Purpose | Forwarder address to set with `setForwarderAddress` |
-| --- | --- |
-| `cre workflow simulate --broadcast` | Mock forwarder for `arc-testnet`: `0x6E9EE680ef59ef64Aa8C7371279c27E496b5eDc1` |
-| Deployed workflow | Production forwarder for `arc-testnet`: `0x76c9cf548b4179F8901cda1f8623568b58215E62` |
+**Current state (2026-11-06, read with `bun price-feed/scripts/status.ts`): setup A is done.** `expectedAuthor = 0xAAAA…AAAA`, `priceSource = 1` (Feed). The owner's `setPrice`/`setPrices` now revert with `WrongPriceSource`; prices change only through reports.
 
-Both are from Chainlink's [Forwarder Directory](https://docs.chain.link/cre/guides/workflow/using-evm-client/forwarder-directory). Re-check them there before use.
+`setPriceSource(1)` reverts with `WorkflowIdentityRequired` unless an expected author or workflow ID is set first.
 
-For a deployed workflow, also set the workflow identity (the contract refuses Feed mode without it), then switch the source:
+**A. Live prices from `cre workflow simulate --broadcast` (the demo)**
 
-1. `setExpectedAuthor(<workflow owner address>)`, the address linked to your CRE account that deploys the workflow. Optionally also `setExpectedWorkflowId(<id>)` (shown after deploy).
-2. `setPriceSource(Feed)`.
-
-What simulation can and cannot prove with this contract:
-
-- **Admin mode** (the default): the exchange accepts a report from the forwarder and ignores it (`ReportIgnored`). A broadcast simulation therefore proves the whole pipeline up to a delivered report, but prices on the exchange do not change.
-- **Feed mode** requires a workflow identity, and Chainlink documents that the simulation's mock forwarder does not provide workflow metadata. Expect a Feed-mode report from a simulation to revert on the identity check. So a price update that actually lands on-chain can only be confirmed with a deployed workflow.
-
-### 8. Deploy (only if your account has deploy access)
+The CRE simulator writes fixed placeholder metadata into every report: workflow ID `0x1111…1111`, workflow owner `0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`, and the mock forwarder passes it on to `onReport`. (Checked on Arc Testnet: every simulation report sent to the mock forwarder carries these values, and a read-only `eth_estimateGas` against the deployed exchange with `expectedAuthor` overridden to `0xAAAA…` passes the identity check while `0xBBBB…` fails it.) Chainlink's docs say the mock forwarder "does not provide workflow metadata"; in practice it provides these placeholders. So:
 
 ```bash
-cre account access        # shows your status or lets you request deploy access
+EX=0x93662de514b981f8c7bf97085e359e0f18034804
+RPC=https://rpc.testnet.arc.network
+cast send $EX "setExpectedAuthor(address)" 0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA --rpc-url $RPC --private-key $OWNER_PK
+cast send $EX "setPriceSource(uint8)" 1 --rpc-url $RPC --private-key $OWNER_PK
+```
+
+Do not call `setExpectedWorkflowName` for the simulation setup (the simulator's name encoding is unverified against the contract; a mismatch reverts every report). `setExpectedWorkflowId(0x1111…)` is possible but adds nothing.
+
+> **Security caveat (testnet only):** the mock forwarder checks no signatures, and the placeholder author is public. So **any address** can call `report(...)` on the mock forwarder with a hand-made report and move prices. No CRE CLI is needed. (Checked read-only on 2026-11-06 with `eth_estimateGas`: `onReport` accepts a +5% move with author `0xAAAA…` and reverts with `0xBBBB…`.) The 5% cap applies per report, not per day. The only timestamp rule is that each report is newer than the last, so an attacker can repeat it every block and compound the move, then trade against the reserve. Acceptable for the hackathon demo with a small reserve. After judging, roll back (step 9) or switch to setup B.
+
+**B. Deployed workflow (production forwarder)**
+
+After `cre workflow deploy` (needs deploy access, see step 8):
+
+```bash
+cast send $EX "setForwarderAddress(address)" 0x76c9cf548b4179F8901cda1f8623568b58215E62 --rpc-url $RPC --private-key $OWNER_PK  # KeystoneForwarder, arc-testnet
+cast send $EX "setExpectedAuthor(address)" <workflow owner address from deploy / cre whoami> --rpc-url $RPC --private-key $OWNER_PK
+cast send $EX "setExpectedWorkflowId(bytes32)" <workflow ID printed by deploy> --rpc-url $RPC --private-key $OWNER_PK              # optional, recommended
+cast send $EX "setPriceSource(uint8)" 1 --rpc-url $RPC --private-key $OWNER_PK                                                      # if not already 1
+```
+
+`setExpectedWorkflowName("stock-price-feed")` is optional and only meaningful with the author set. Forwarder addresses: [Forwarder Directory](https://docs.chain.link/cre/guides/workflow/using-evm-client/forwarder-directory).
+
+### 5. Simulation with broadcast (one live update)
+
+```bash
+cre workflow simulate price-feed --target arc-testnet-settings --non-interactive --trigger-index 0 --broadcast
+```
+
+The run ends with `Wrote N prices (M skipped). tx 0x…`. If the exchange is still in Admin mode the transaction succeeds but the exchange emits `ReportIgnored` and prices do not change.
+
+**Verified on Arc Testnet (2026-11-06):** first live report [`0xd2a96bfe…375e`](https://testnet.arcscan.app/tx/0xd2a96bfedcf3733d8da9e38332221142d5996ebf6f8307aa78b9936d5779375e). It was sent by a throwaway gas wallet to the mock forwarder, and its logs contain `PricesUpdated` (15 stocks) and `ReportProcessed`. **Cost: 278,986 gas × 25 gwei = about 0.007 USDC per update** for 15 stocks, so the 5-minute loop costs about 0.08 USDC per hour and 2 USDC lasts about 24 hours.
+
+### 6. Keep prices live during the demo
+
+```bash
+./run-loop.sh                       # broadcast every 5 minutes until Ctrl-C, logs to cre/run-loop.log
+INTERVAL=120 ./run-loop.sh          # every 2 minutes
+DRY_RUN=1 MAX_RUNS=1 ./run-loop.sh  # one dry run
+```
+
+Run it inside `tmux`/`screen` so it survives a closed terminal. A failed run is logged and the loop continues. With the market closed (the demo is on a Saturday) Yahoo returns Friday's close, so each run re-writes the same prices with a fresh timestamp; that still shows the pipeline working and keeps `price()` from going stale (`maxPriceAge` = 4 days).
+
+### 7. Verify
+
+```bash
+cd price-feed && bun scripts/status.ts          # source, identity, prices vs Yahoo, recent events
+```
+
+Or with `cast`:
+
+```bash
+cast call $EX "priceSource()(uint8)" --rpc-url $RPC                                     # 1 = Feed
+cast call $EX "lastReportAt()(uint256)" --rpc-url $RPC                                  # block time of the last applied report
+cast call $EX "price(address)(uint256)" 0x4572E4D21199deA83a5E069361871512c31a3bBd --rpc-url $RPC   # tAAPL, USDC 6 dp
+cast logs --address $EX "PricesUpdated(address[],uint256[],uint64)" --from-block <recent block> --rpc-url $RPC
+```
+
+On the explorer (https://testnet.arcscan.app) the broadcast transaction goes to the mock forwarder (`report(...)`); its logs should contain `PricesUpdated` from the exchange and `ReportProcessed(..., result = true)` from the forwarder. `result = false` means `onReport` reverted: check identity settings (`getExpectedAuthor()`), forwarder (`getForwarderAddress()`), and the workflow log for clamp/skip lines.
+
+### 8. Deploy (optional, needs deploy access)
+
+```bash
+cre account access
 cre workflow deploy price-feed --target arc-testnet-settings
 cre workflow list
 ```
 
-See the [Deploying Workflows](https://docs.chain.link/cre/guides/operations/deploying-workflows) guide for the registry choice (`deployment-registry` in `price-feed/workflow.yaml`). Deploying links your wallet address to your organization permanently, and the CLI asks you to confirm.
+The `schedules` in `config.json` run every 5 minutes, Mon-Fri 13:30-21:00 UTC (US market hours in both summer and winter time). A deployed workflow therefore does nothing on weekends; add a schedule if you need it to run then. Whether Arc Testnet is enabled for deployed workflows in your organization is unconfirmed: check `cre workflow supported-chains`.
 
-## Offline test
+### 9. Rollback
+
+```bash
+cast send $EX "setPriceSource(uint8)" 0 --rpc-url $RPC --private-key $OWNER_PK   # back to Admin: reports are ignored, owner setPrice/setPrices work again
+```
+
+Stop `run-loop.sh` with Ctrl-C. Clearing the identity is optional and only possible in Admin mode: `setExpectedAuthor(0x0000000000000000000000000000000000000000)` (clear any workflow name first).
+
+## Offline tests
 
 ```bash
 cd price-feed
-bun test
+bun test             # 20 tests: report decoding, clamp/skip, cap rounding, stale/bad quotes, timestamps, limits
 bun run typecheck
+bunx cre-compile main.ts /tmp/price-feed.wasm   # optional: the same WASM build the CLI does
 ```
 
-The test mocks the exchange and Yahoo Finance and decodes the report exactly like the contract does (3 parameters, USDC 6-decimal prices, timestamp).
+## Caveats
 
-## Important caveats
-
-- **Arc Testnet support is documented for simulation.** Chainlink lists Arc Testnet in its supported networks (CLI v1.0.7+, TypeScript SDK v1.3.1+) and in the simulation forwarder table, and a production forwarder address is listed for it. **Whether a deployed, scheduled workflow actually runs and writes against Arc Testnet is unconfirmed.** Run `cre workflow supported-chains` after login to see what your organization has enabled. Keep the exchange able to fall back to Admin mode (`setPriceSource(Admin)`).
-- **Yahoo Finance is an unofficial, unauthenticated endpoint.** It has no service guarantee and can rate limit or block requests. Every node of the DON calls it for each stock on each run, so a rate-limited quote is skipped. `yahoo.cacheMaxAgeSeconds` can let nodes share one cached response; it is off by default and its behaviour is unverified. For anything beyond a testnet demo, use a licensed data provider.
-- The quote carries no freshness check in this workflow, so it cannot tell a live quote from the last close (weekends, holidays, after hours). The contract's own timestamp comes from workflow time.
-- Only the first `maxStocksPerRun` stocks are updated in one run (CRE limit: 15 HTTP requests per execution).
+- **Yahoo Finance is unofficial and unauthenticated.** No service guarantee; it can rate limit. A failed quote is skipped, not fatal. For anything beyond a testnet demo use a licensed data provider.
+- **Simulation-driven updates are a demo setup**, see the security caveat in step 4A.
+- At most `maxStocksPerRun` (15) stocks are updated per run. With more listed, each run picks the 15 with the oldest `updatedAt`, so all stocks rotate through. With the 16 stocks listed today, every stock is refreshed at least every second run, unless its quote fails.
