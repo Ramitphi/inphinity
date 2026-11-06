@@ -105,5 +105,5 @@ options we rejected.
   the exchange uses a mock forwarder. Anyone running the simulator could push prices, bounded by the 5% cap.
 - **The exchange's `buy`/`sell` are public onchain.** The app is index-only (no single-stock trading in the UI), but
   the contract doesn't restrict callers to registered funds yet.
-- **Exchange inventory** is stocked for 8 of the 16 stocks; Create offers only stocks with inventory.
+- **Exchange inventory** is stocked for 15 of the 16 stocks (10,000 each). tNFLX is left at zero on purpose: the issuer sends it live through the issuer console (`/issuer`). Create offers only stocks with inventory.
 - **Testnet only:** Arc Testnet, Base Sepolia and Sepolia.

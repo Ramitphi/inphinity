@@ -73,6 +73,10 @@ The orchestrator session holds the testnet-only team wallet `0xC658A9Bd5ADE6CCd8
 | 02:20–02:40 (20:50–21:10) | Brainstorms recorded in `DECISIONS.md`: 2a why CCTP burn-and-mint instead of wrapping; 4c custody (the fund contract holds its stocks; no admin withdraw; weights exact only at purchase); 4d bridge = issuer console; feature freeze | [DECISIONS](docs/DECISIONS.md) |
 | 02:59 (21:29) | Merged #30 issuer console + NAV note fix (`ba614c5`) | [PR #30](https://github.com/Ramitphi/inphinity/pull/30) |
 | 03:05 (21:35) | **Arc Studio sync ("sync to arc")**: every file changed on `main` since the 21:35 IST 6 Nov sync (index-only app, plain digits, issuer console, since inception, ENS profile page, 1D change, CCIP fallback, docs) uploaded and verified byte-for-byte. Submission drafts excluded by rule | Studio app `7582b931…` |
+| 03:13–03:31 (21:43–22:01) | **7 more stocks bridged into exchange inventory**: 10,000 each of tAMD, tJPM, tV, tWMT, tKO, tDIS, tORCL minted on Base and sent with CCTP to the StockExchange on Arc (all landed by 03:31). 15 of 16 stocks now have inventory; tNFLX stays at 0 for the live issuer demo. `bridge-all.ts` gains an `ONLY=` symbol filter | [tAMD burn](https://sepolia.basescan.org/tx/0x734df27994047959d0098813f6a0784ade7960f3e4b204b8ce86dbb4c2fad607), [tORCL burn](https://sepolia.basescan.org/tx/0x8dd5e013955ba40506fde7bf35881e6f2ed82f641f0ab2a3720112c58bd92380) |
+| 03:15 (21:45) | **RMT and AICHIP named via the CCIP fallback** (one run with the team wallet after a dry run showed exactly these 2 actions): `rmt.inphinity.eth` (CCIP had skipped it, fee too low) and `ccipdemo.inphinity.eth` + `aichip` link (its 2.5M-gas CCIP message had failed). All 5 funds now have ENS names | [rmt register](https://sepolia.etherscan.io/tx/0xda2711c480fca31d54697ff43f4048c72f83c0aafab71e68a5ff0715404bccc4), [ccipdemo register](https://sepolia.etherscan.io/tx/0x08755a680f9ae9dcd535ff7ea387754c7e8e4746213dda06cb8b5f571c6ec729) |
+| 03:16 (21:46) | Merged #32: root `.gitignore` ignores `.env`/`.env.*` everywhere (keeps `.env.example`) before the repo goes public | [PR #32](https://github.com/Ramitphi/inphinity/pull/32) |
+| 03:17 (21:47) | Empty funds seeded with 5 USDC each from the team wallet: AICHIP and AIBLD now show AUM ≈ $4.98, NAV 1.00 | [AICHIP invest](https://testnet.arcscan.app/tx/0xe46f45de497fb9d5ffe40cd203a94e03b2063ce94ceb988135afe010e66160ea), [AIBLD invest](https://testnet.arcscan.app/tx/0xe4123e80a2732f0cdb917744ad80964b60f06ae805ad3280b3ac49a2dcddf880) |
 | 03:17 (21:47) | **Public README + architecture diagram**: root `README.md` (pitch, how it works, try it, contracts with explorer links, repo map, run locally, limits) and `docs/ARCHITECTURE.md` with a new top-down diagram (`docs/architecture.mmd`, PNG 3200×2000): supply / product / data & identity rows, coloured by sponsor, numbered user path ①–④, no crossing arrows. Facts re-checked onchain (registrar wired, 0.5% spread, CRE price source on, 16 listed, 8 with inventory) | branch `docs/readme-architecture` |
 
 ## Live addresses
@@ -92,10 +96,11 @@ The orchestrator session holds the testnet-only team wallet `0xC658A9Bd5ADE6CCd8
 - [x] Chainlink CRE: laptop simulation passes, `setExpectedAuthor` + `setPriceSource(Feed)`, live `--broadcast` report on Arc
 - [x] CRE `run-loop.sh` running (since 21:28 IST); keep it running through judging
 - [x] CCIP registrar topped up to 41.96 USDC (re-check the fee before the demo)
-- [ ] Inventory for the 8 newer stocks (tNFLX…tORCL)
+- [x] Inventory for the newer stocks: 7 bridged (03:31 IST); tNFLX left for the live issuer demo
 - [x] CCIP naming retest (`aibuilders`) delivered on Sepolia
 - [x] Public hosting of the web app: https://inphinity.vercel.app
 - [x] Arc Studio project synced with GitHub `main` (latest: 03:05 IST 7 Nov, after #30)
-- [ ] CCIP fallback: grant the dedicated key its roles, fund it (~0.05 Sepolia ETH), start `ens/fallback-loop.sh` on Ramit's Mac (names RMT and AICHIP on its first run)
+- [x] RMT and AICHIP named via one fallback run with the team wallet (03:15 IST)
+- [ ] Optional: run `ens/fallback-loop.sh` continuously with a dedicated key (roles via `grant-fallback-roles`)
 - [x] README and architecture diagram (branch `docs/readme-architecture`)
 - [ ] Demo video, ETHGlobal submission
