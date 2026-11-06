@@ -321,8 +321,15 @@ export const onCronTrigger = (runtime: Runtime<Config>): string => {
   }
   const limit = Math.min(config.maxStocksPerRun, CONTRACT_MAX_TOKENS)
   if (stocks.length > limit) {
-    runtime.log(`Exchange lists ${stocks.length} stocks; only the first ${limit} are updated per run.`)
-    stocks = stocks.slice(0, limit)
+    // A run can make at most `limit` HTTP calls, so update the stalest prices first. Over consecutive
+    // runs every listed stock rotates through, instead of the same stocks always being left out.
+    // Ties keep getStocks() order, so the selection is deterministic across DON nodes.
+    stocks = stocks
+      .map((s, i) => ({ s, i }))
+      .sort((a, b) => (a.s.updatedAt < b.s.updatedAt ? -1 : a.s.updatedAt > b.s.updatedAt ? 1 : a.i - b.i))
+      .slice(0, limit)
+      .map(({ s }) => s)
+    runtime.log(`Exchange lists more than ${limit} stocks; updating the ${limit} with the oldest prices this run.`)
   }
 
   // --- 2. Report timestamp --------------------------------------------------------------------
