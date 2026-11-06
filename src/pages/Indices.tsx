@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useAccount, useReadContract, useReadContracts } from 'wagmi'
 import { arcTestnet } from 'viem/chains'
 import { isAddress, type Abi, type Address } from 'viem'
-import { EXPLORER, USDC, fundAbi } from '../lib/contracts'
-import { qty, short, ticker, usd } from '../lib/format'
+import { EXCHANGE, EXPLORER, USDC, exchangeAbi, fundAbi } from '../lib/contracts'
+import { qty, short, ticker, units, usd } from '../lib/format'
 import { Link } from '../lib/router'
 import { useTx } from '../lib/tx'
 import { POLL, useFunds, useStocks, useUsdcBalance } from '../hooks/data'
@@ -128,7 +128,7 @@ function FundView({ fund }: { fund: Address }) {
               <tr key={h.token}>
                 <td><span className="sym"><i style={{ display: 'inline-block', width: 10, height: 10, background: SHADES[i % SHADES.length], border: '1px solid #0a0a0a', marginRight: 6 }} />{h.sym}</span> <span className="name hide-sm">{h.company}</span></td>
                 <td className="r mono">{(h.weight / 100).toFixed(h.weight % 100 ? 2 : 0)}%</td>
-                <td className="r mono hide-sm">{qty(h.units, 3)}</td>
+                <td className="r mono hide-sm">{units(h.units)}</td>
                 <td className="r mono">{usd(h.value)}</td>
                 <td className="r"><Change v={h.change} /></td>
               </tr>
@@ -181,6 +181,7 @@ function InvestBox({ fund, symbol, shares, locked, onDone }: { fund: Address; sy
   const out = amt > 0n ? (preview.data as bigint | undefined) : undefined
   const minOut = out !== undefined ? (out * 995n) / 1000n : undefined
   const free = shares !== undefined ? shares - (locked ?? 0n) : undefined
+  const reserve = useReadContract({ chainId, address: EXCHANGE, abi: exchangeAbi, functionName: 'reserveBalance', query: { refetchInterval: POLL, enabled: !isInvest } })
 
   let problem: string | null = null
   if (isInvest && amt > 0n && amt < 1_000_000n) problem = 'Minimum investment is 1 USDC.'
@@ -188,6 +189,7 @@ function InvestBox({ fund, symbol, shares, locked, onDone }: { fund: Address; sy
   else if (!isInvest && free !== undefined && amt > free) problem = locked && locked > 0n
     ? `Only ${qty(free)} ${symbol} can be redeemed now; ${qty(locked)} are still locked (about 60s after investing).`
     : `You only have ${qty(free)} ${symbol}.`
+  else if (!isInvest && out !== undefined && reserve.data !== undefined && out > reserve.data) problem = `Exchange reserve too low: the fund sells your stocks back to the exchange, which has only ${usd(reserve.data)} USDC to pay out right now. Try a smaller amount.`
   else if (preview.error && amt > 0n) problem = 'Could not preview this amount (a stock price may be stale or the exchange short of inventory).'
 
   async function execute() {

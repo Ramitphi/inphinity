@@ -16,7 +16,7 @@ export function friendlyError(err: unknown): string {
     const a = (rev?.data?.args ?? []) as unknown[]
     switch (name) {
       case 'InsufficientInventory': return `Not enough stock in the exchange: ${tok(a[0])} available, ${tok(a[1])} needed. Try a smaller amount.`
-      case 'InsufficientReserve': return `The exchange's USDC reserve can't cover this sale (${usdcN(a[0])} USDC available, ${usdcN(a[1])} needed). Try a smaller amount.`
+      case 'InsufficientReserve': return `Exchange reserve too low: it can't cover this sale (${usdcN(a[0])} USDC available, ${usdcN(a[1])} needed). Try a smaller amount.`
       case 'HoldActive': return `Recently bought, still in the hold period. Try again after ${time(a[0] as bigint)}.`
       case 'LockedShares': return 'These shares are still locked from your last investment. Try again in about a minute.'
       case 'SlippageExceeded': return 'The price moved more than 0.5% while you were confirming. Please try again.'

@@ -1,7 +1,7 @@
 import { useAccount, useReadContracts } from 'wagmi'
 import { arcTestnet } from 'viem/chains'
 import { erc20Abi } from 'viem'
-import { qty, ticker, usd } from '../lib/format'
+import { qty, ticker, units, usd } from '../lib/format'
 import { Link } from '../lib/router'
 import { POLL, useFunds, useStocks, useUsdcBalance } from '../hooks/data'
 import { Change, Lcd } from '../components/ui'
@@ -44,7 +44,7 @@ export function Portfolio() {
         <table className="board">
           <thead><tr><th>Symbol</th><th className="r">Units</th><th className="r hide-sm">Price</th><th className="r">Value</th><th className="r">Change</th></tr></thead>
           <tbody>{held.map(({ s, bal }) => (
-            <tr key={s.token}><td className="sym">{ticker(s.symbol)}</td><td className="r mono">{qty(bal)}</td>
+            <tr key={s.token}><td className="sym">{ticker(s.symbol)}</td><td className="r mono">{units(bal)}</td>
               <td className="r hide-sm"><Lcd value={usd(s.price).replace(/,/g, '')} /></td>
               <td className="r mono">{usd((bal * s.price) / E18)}</td><td className="r"><Change v={s.change} /></td></tr>
           ))}</tbody>

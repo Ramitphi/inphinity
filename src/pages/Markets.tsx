@@ -3,7 +3,7 @@ import { useAccount, useReadContract } from 'wagmi'
 import { arcTestnet } from 'viem/chains'
 import { erc20Abi, parseUnits, type Abi, type Address } from 'viem'
 import { EXCHANGE, USDC, exchangeAbi } from '../lib/contracts'
-import { qty, ticker, usd } from '../lib/format'
+import { ago, qty, ticker, usd } from '../lib/format'
 import { useTx } from '../lib/tx'
 import { POLL, useStocks, useUsdcBalance, type Stock } from '../hooks/data'
 import { AmountInput, Change, Flash, KV, Lcd, useDebounced, useNow } from '../components/ui'
@@ -18,6 +18,10 @@ export const parse = (v: string, d: number) => {
 export function Markets() {
   const { stocks, isLoading, error, refetch } = useStocks()
   const [sel, setSel] = useState<{ token: Address; side: 'buy' | 'sell' } | null>(null)
+  const now = useNow(30_000)
+  const maxAge = useReadContract({ chainId, address: EXCHANGE, abi: exchangeAbi, functionName: 'maxPriceAge' })
+  const oldest = stocks.length ? stocks.reduce((m, s) => (s.updatedAt < m ? s.updatedAt : m), stocks[0].updatedAt) : undefined
+  const stale = oldest !== undefined && maxAge.data !== undefined && now / 1000 - Number(oldest) > Number(maxAge.data)
   const open = (token: Address, side: 'buy' | 'sell') =>
     setSel((s) => (s?.token === token && s.side === side ? null : { token, side }))
 
@@ -63,8 +67,9 @@ export function Markets() {
           ))}
         </tbody>
       </table>
+      {stale && <div className="alert">Some prices are older than the exchange allows ({Math.round(Number(maxAge.data) / 3600)}h), so buys may fail until the oracle pushes a fresh report.</div>}
       <div className="note">
-        Spread 0.5% each way · Change is versus the listing price · Prices set by oracle (Chainlink CRE) · Not real securities, testnet demo.
+        {oldest !== undefined && <>Prices updated {ago(oldest, now)} · </>}Spread 0.5% each way · Change is versus the listing price · Prices set by oracle (Chainlink CRE) · Not real securities, testnet demo.
       </div>
     </>
   )
@@ -101,7 +106,7 @@ function TradePanel({ stock, side, setSide, onDone, onClose }: { stock: Stock; s
   if (amt > 0n && bal === 0n) problem = isBuy ? 'You have no USDC. Get testnet USDC at faucet.circle.com.' : `You don't hold any ${sym} yet.`
   else if (amt > 0n && bal !== undefined && amt > bal) problem = `You only have ${isBuy ? usd(bal) + ' USDC' : qty(bal) + ' ' + sym}.`
   else if (isBuy && out !== undefined && stock.inventory !== undefined && out > stock.inventory) problem = `Only ${qty(stock.inventory)} ${sym} left in the exchange's inventory.`
-  else if (!isBuy && out !== undefined && reserve.data !== undefined && out > reserve.data) problem = `The exchange's USDC reserve (${usd(reserve.data)}) can't cover this sale right now. Try a smaller amount.`
+  else if (!isBuy && out !== undefined && reserve.data !== undefined && out > reserve.data) problem = `Exchange reserve too low: it has only ${usd(reserve.data)} USDC to pay sellers right now. Try a smaller amount.`
   else if (holdLeft > 0) problem = `You bought ${sym} recently. Selling unlocks in ${holdLeft}s (60s hold after a buy).`
   else if (quote.error && amt > 0n) problem = 'Could not get a quote for this amount.'
 
@@ -154,8 +159,8 @@ function TradePanel({ stock, side, setSide, onDone, onClose }: { stock: Stock; s
           <KV k="Buy price (incl. spread)">{(priceN * 1.005).toFixed(2)}</KV>
           <KV k="Sell price (incl. spread)">{(priceN * 0.995).toFixed(2)}</KV>
           <KV k="Exchange inventory">{qty(stock.inventory, 2)} {sym}</KV>
-          <KV k="You hold">{tokBal.data === undefined ? '—' : `${qty(tokBal.data)} ${sym}`}</KV>
-          <KV k="Price updated">{stock.updatedAt ? new Date(Number(stock.updatedAt) * 1000).toLocaleString() : '—'}</KV>
+          <KV k="You hold">{tokBal.data === undefined ? '—' : `${qty(tokBal.data, 6)} ${sym}`}</KV>
+          <KV k="Price updated">{stock.updatedAt ? ago(stock.updatedAt, now) : '—'}</KV>
           <div className="note">
             {isBuy
               ? 'Two wallet steps: approve USDC to the exchange, then buy. Tokens arrive in your wallet at the oracle price plus a 0.5% spread.'
