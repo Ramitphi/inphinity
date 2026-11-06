@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { expectedEnsName } from '../lib/ens'
 import { useAccount } from 'wagmi'
 import { parseEventLogs, type Abi, type Address } from 'viem'
 import { toast } from 'sonner'
@@ -128,6 +129,9 @@ export function Create() {
                 <span className="mono" style={{ fontWeight: 600, textAlign: 'right', fontSize: 18 }}>{(feeBps / 100).toFixed(2)}%</span>
               </div>
               <div className="note">You earn the fee as newly minted fund shares, accrued continuously. Weights are fixed once the fund is created.</div>
+              {expectedEnsName(symbol.trim(), name.trim()) && (
+                <div className="note">ENS: your fund will be listed as <b className="mono">{expectedEnsName(symbol.trim(), name.trim())}</b> on Sepolia (ENSv2), owned by you, a minute or so after creation.</div>
+              )}
               <table className="board" style={{ marginTop: 16 }}>
                 <thead><tr><th>Stock</th><th className="r">Weight</th><th className="r">Change</th></tr></thead>
                 <tbody>
