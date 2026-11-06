@@ -9,5 +9,7 @@
       "fund": "0x9272a103f49399d1b7FD538f7a5103E11080895A",
       "creator": "0xC658A9Bd5ADE6CCd87874f5De925528CE57b4C93"
     }
-  }
+  },
+  "arcEnsRegistrar": "0x39437a4f9c2ed49c5c3310681d440b26a0cb23cd",
+  "ensReceiver": "0x95b9aaba9fc5209e68afe1686d80a69fa03bb23f"
 }

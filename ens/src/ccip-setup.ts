@@ -16,7 +16,8 @@
 //      --disable sets it back to address(0) (instant kill switch, fund creation keeps working).
 //
 // Usage: PRIVATE_KEY=0x... bun run src/ccip-setup.ts [--enable | --disable] [--dry-run]
-// Env:   CCIP_FUND_USDC (fee balance to keep on the registrar, default 3; ~0.51 USDC per fund)
+// Env:   CCIP_FUND_USDC (fee balance to keep on the registrar, default 3; ~0.53 USDC per fund)
+//        CCIP_GAS_LIMIT (Sepolia execution gas per message, default 9000000)
 import { formatEther, parseEther, zeroAddress, type Abi, type Address, type Hex } from "viem";
 import { ARC, CCIP, DRY_RUN, ENS, arcClient as arc, sepoliaClient as c } from "./config";
 import { indexFactoryAbi, permissionedResolverAbi, registryAbi } from "./abis";
@@ -29,6 +30,8 @@ const receiverArt = receiverArtifact as unknown as { abi: Abi; bytecode: Hex };
 const ENABLE = process.argv.includes("--enable");
 const DISABLE = process.argv.includes("--disable");
 const FUND_TARGET = parseEther(process.env.CCIP_FUND_USDC ?? "3");
+/** Sepolia execution gas per message. Live ccipReceive uses ~4.5M-7.5M; 2.5M failed live. */
+const GAS_LIMIT = BigInt(process.env.CCIP_GAS_LIMIT ?? 9_000_000);
 
 export const RECEIVER_RESOLVER_ROLES = ResolverRoles.SET_ADDRESS | ResolverRoles.SET_TEXT | ResolverRoles.LINK;
 
@@ -93,6 +96,10 @@ async function main() {
   if (current.toLowerCase() !== receiver.toLowerCase()) {
     await send(s, "ArcEnsRegistrar.setReceiver", { ...reg, functionName: "setReceiver", args: [receiver] } as any, "arc");
   } else console.log("  registrar already points at the receiver");
+  const gas = (await arc.readContract({ ...reg, functionName: "gasLimit" })) as bigint;
+  if (gas !== GAS_LIMIT) {
+    await send(s, `ArcEnsRegistrar.setGasLimit(${GAS_LIMIT}) (was ${gas})`, { ...reg, functionName: "setGasLimit", args: [GAS_LIMIT] } as any, "arc");
+  } else console.log(`  registrar gas limit already ${gas}`);
   const fee = (await arc.readContract({ ...reg, functionName: "quoteFee" }).catch(() => 0n)) as bigint;
   const balance = await arc.getBalance({ address: registrar });
   console.log(`  CCIP fee per fund ~${formatEther(fee)} USDC; registrar balance ${formatEther(balance)} USDC`);
