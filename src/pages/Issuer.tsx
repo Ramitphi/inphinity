@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useAccount, useBalance, usePublicClient, useReadContract, useReadContracts, useSimulateContract, useSwitchChain, useWriteContract } from 'wagmi'
+import { useAccount, useBalance, usePublicClient, useReadContract, useReadContracts, useSwitchChain, useWriteContract } from 'wagmi'
 import { toast } from 'sonner'
 import { arcTestnet, baseSepolia } from 'viem/chains'
 import { erc20Abi, formatUnits, type EIP1193Provider } from 'viem'
@@ -9,45 +9,147 @@ import { Link } from '../lib/router'
 import { BASE_EXPLORER, STEPS, clearJob, estimateFee, markArrived, startBridge, useBridgeJob, type BridgeJob } from '../lib/bridge'
 import { BRIDGEABLE, STOCK_CATALOG } from '../lib/stocks'
 import { AmountInput, KV, useDebounced, useNow } from '../components/ui'
+import { mintAbi, useIsIssuer } from '../hooks/issuer'
+import { useStocks } from '../hooks/data'
 
-export function Bridge() {
+// The issuer console: the supply side. The issuer mints stocks on Base and sends them to Arc
+// with Circle Bridge Kit (CCTPx) into the exchange inventory. Investors never bridge.
+export function Issuer() {
   const job = useBridgeJob()
+  const isIssuer = useIsIssuer()
   return (
     <>
-      <h2 className="title">Bridge from Base</h2>
-      <div className="sub">Move tokenized stocks from Base Sepolia to Arc with Circle Bridge Kit (CCTPx). They land in your own wallet on Arc.</div>
-      <div className="split">
-        <div>{job ? <Progress job={job} /> : <BridgeForm />}</div>
-        <div>
-          <div className="box">
-            <h3>Route</h3>
-            <div className="in">
-              <KV k="From">Base Sepolia</KV>
-              <KV k="To">Arc Testnet</KV>
-              <KV k="Protocol">Circle CCTPx · Bridge Kit</KV>
-              <KV k="Finality">Standard · ~15-20 min</KV>
-              <KV k="Mint on Arc">Circle relayer (no Arc gas)</KV>
-            </div>
-          </div>
-          <div className="box">
-            <h3>How it works</h3>
-            <div className="in">
-              <ol style={{ paddingLeft: 22, margin: 0, lineHeight: 1.35, listStyle: 'decimal' }}>
-                <li>Approve the stock to its CCTPx token manager on Base.</li>
-                <li>The token is burned on Base; Circle's fee is paid in Base ETH.</li>
-                <li>Circle attests the burn once Base finalizes.</li>
-                <li>Circle's relayer mints the same amount to you on Arc.</li>
-              </ol>
-              <div className="note">Same token address on both chains. Testnet mock, not real securities.</div>
-            </div>
+      <h2 className="title">Issuer · Send to Arc</h2>
+      <div className="sub">
+        Issuer console. Stocks are issued on Base and sent to Arc with Circle CCTP (Bridge Kit): burned on Base, minted natively on Arc at the same address. Investors never bridge; they buy funds with USDC.
+      </div>
+      {isIssuer ? (
+        <div className="split">
+          <div>{job ? <Progress job={job} /> : <BridgeForm />}</div>
+          <div>
+            <RouteBox />
+            <HowItWorks />
           </div>
         </div>
-      </div>
+      ) : (
+        <>
+          {job && <Progress job={job} />}
+          <div className="split">
+            <div><RouteBox /></div>
+            <div><HowItWorks /></div>
+          </div>
+          <SupplyTable />
+          <RecentTransfers />
+        </>
+      )}
     </>
   )
 }
 
-const mintAbi = [{ type: 'function', name: 'mint', stateMutability: 'nonpayable', inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [] }] as const
+function RouteBox() {
+  return (
+    <div className="box">
+      <h3>Route</h3>
+      <div className="in">
+        <KV k="From">Base Sepolia</KV>
+        <KV k="Via">Circle CCTPx · Bridge Kit</KV>
+        <KV k="To">Arc Testnet · exchange inventory</KV>
+        <KV k="Finality">Standard · ~15-20 min</KV>
+        <KV k="Mint on Arc">Circle relayer (no Arc gas)</KV>
+      </div>
+    </div>
+  )
+}
+
+function HowItWorks() {
+  return (
+    <div className="box">
+      <h3>How it works</h3>
+      <div className="in">
+        <ol style={{ paddingLeft: 22, margin: 0, lineHeight: 1.35, listStyle: 'decimal' }}>
+          <li>The issuer mints the stock on Base and approves it to its CCTPx token manager.</li>
+          <li>The token is burned on Base; Circle's fee is paid in Base ETH.</li>
+          <li>Circle attests the burn once Base finalizes.</li>
+          <li>Circle's relayer mints the same amount into the exchange inventory on Arc.</li>
+        </ol>
+        <div className="note">Same token address on both chains. Testnet mock, not real securities.</div>
+      </div>
+    </div>
+  )
+}
+
+/** Read-only: every issued stock, its token on both chains, and what the exchange holds on Arc. */
+function SupplyTable() {
+  const { byToken } = useStocks()
+  // balanceOf(EXCHANGE) is what inventoryOf returns, and it also works for stocks not yet listed.
+  const inv = useReadContracts({
+    contracts: BRIDGEABLE.map((s) => ({ chainId: arcTestnet.id, address: s.token, abi: erc20Abi, functionName: 'balanceOf', args: [EXCHANGE] }) as const),
+    query: { refetchInterval: 15_000 },
+  })
+  return (
+    <>
+      <h3 className="title" style={{ fontSize: '1.4em', marginTop: 24 }}>Supply on Arc</h3>
+      <table className="board" data-testid="supply-table">
+        <thead>
+          <tr>
+            <th>Stock</th>
+            <th className="hide-sm">Company</th>
+            <th>Token<span className="hide-sm"> (Base = Arc)</span></th>
+            <th className="r"><span className="hide-sm">Exchange </span>inventory</th>
+            <th className="r">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {BRIDGEABLE.map((s, i) => {
+            const bal = inv.data?.[i]?.result as bigint | undefined
+            const listed = byToken.has(s.token.toLowerCase())
+            const onArc = bal !== undefined && bal > 0n
+            return (
+              <tr key={s.symbol} data-testid="supply-row">
+                <td className="sym">{ticker(s.symbol)}</td>
+                <td className="name hide-sm">{s.company}</td>
+                <td className="mono" style={{ whiteSpace: 'nowrap' }}>
+                  <span className="hide-sm">{short(s.token)} </span>
+                  <a href={`${BASE_EXPLORER}/token/${s.token}`} target="_blank" rel="noopener noreferrer" title="Basescan">Base ↗</a>{' '}
+                  <a href={`${EXPLORER}/token/${s.token}`} target="_blank" rel="noopener noreferrer" title="Arcscan">Arc ↗</a>
+                </td>
+                <td className="r mono" data-testid={`inv-${ticker(s.symbol)}`}>{bal === undefined ? '—' : units(bal)}</td>
+                <td className="r" style={{ whiteSpace: 'nowrap' }}>
+                  {bal === undefined ? '—' : onArc ? <span>on Arc<span className="hide-sm">{listed ? '' : ' · unlisted'}</span></span> : <span className="muted"><span className="hide-sm">issued, </span>not yet sent</span>}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      <div className="note">Exchange inventory is the exchange's token balance on Arc, live. Funds buy from it when investors put USDC in.</div>
+    </>
+  )
+}
+
+// The first live Bridge Kit transfer (tAAPL, Base Sepolia → Arc).
+const EXAMPLE = {
+  burn: '0xb2039183fa749a498824b50e3004a474aa1fe55ec5f7fc89e7651e33ded26225',
+  mint: '0x555f7dfb4a96c29c811284a8a5ae1560c9a275a3620cf19d92d7e3b841a1554d',
+}
+
+function RecentTransfers() {
+  return (
+    <div className="box" style={{ marginTop: 18 }}>
+      <h3>Issuer transfers</h3>
+      <div className="in">
+        <KV k="Verified example · tAAPL">
+          <a href={`${BASE_EXPLORER}/tx/${EXAMPLE.burn}`} target="_blank" rel="noopener noreferrer">burn {short(EXAMPLE.burn)} ↗</a>
+          {' → '}
+          <a href={`${EXPLORER}/tx/${EXAMPLE.mint}`} target="_blank" rel="noopener noreferrer">mint {short(EXAMPLE.mint)} ↗</a>
+        </KV>
+        <KV k="All exchange holdings">
+          <a href={`${EXPLORER}/address/${EXCHANGE}?tab=tokens`} target="_blank" rel="noopener noreferrer">Arcscan ↗</a>
+        </KV>
+      </div>
+    </div>
+  )
+}
 
 function BridgeForm() {
   const { address, chainId, connector, isConnected } = useAccount()
@@ -72,11 +174,7 @@ function BridgeForm() {
   const eth = useBalance({ address, chainId: baseSepolia.id, query: { enabled: !!address } })
 
   // Admin = a wallet allowed to mint this stock on Base (the issuer). Checked by simulating mint.
-  const admin = useSimulateContract({
-    chainId: baseSepolia.id, address: stock?.token, abi: mintAbi, functionName: 'mint', args: address ? [address, 1n] : undefined, account: address,
-    query: { enabled: !!address && !!stock, retry: false },
-  })
-  const isAdmin = admin.isSuccess
+  const isAdmin = useIsIssuer(stock?.token)
   // The issuer always bridges into the exchange's inventory; everyone else bridges to their own wallet.
   const recipient = (isAdmin ? EXCHANGE : address) as `0x${string}` | undefined
   const arcBal = useReadContract({

@@ -5,6 +5,7 @@ import { Link, usePath } from '../lib/router'
 import { masthead, nyseStatus } from '../lib/market'
 import { pct, short, ticker, usd } from '../lib/format'
 import { useFunds, useStocks, useUsdcBalance } from '../hooks/data'
+import { useIsIssuer } from '../hooks/issuer'
 import { useNow } from './ui'
 
 function Tape() {
@@ -32,10 +33,10 @@ function Tape() {
 
 function Wallet() {
   const { chainId, isConnected } = useAccount()
-  const onBridge = usePath().startsWith('/bridge')
+  const onBridge = usePath().startsWith('/issuer')
   const { switchChain, isPending } = useSwitchChain()
   const bal = useUsdcBalance()
-  const wrong = isConnected && chainId !== arcTestnet.id && !onBridge // the bridge page runs on Base Sepolia
+  const wrong = isConnected && chainId !== arcTestnet.id && !onBridge // the issuer console runs on Base Sepolia
   return (
     <>
       {wrong && (
@@ -55,13 +56,15 @@ function Wallet() {
 }
 
 const NAV = [
-  ['/', 'Indices'], ['/create', 'Create'], ['/portfolio', 'Portfolio'], ['/prices', 'Prices'], ['/bridge', 'Bridge'],
+  ['/', 'Indices'], ['/create', 'Create'], ['/portfolio', 'Portfolio'], ['/prices', 'Prices'],
 ] as const
 
 export function Header() {
   const path = usePath()
   const now = useNow(30_000)
   const nyse = nyseStatus(new Date(now))
+  const isIssuer = useIsIssuer()
+  const nav = isIssuer ? [...NAV, ['/issuer', 'Issuer'] as const] : NAV
   const active = (to: string) => (to === '/' ? path === '/' || path === '/indices' || path.startsWith('/index/') : path.startsWith(to))
   return (
     <header>
@@ -77,7 +80,7 @@ export function Header() {
         <span>Arc Testnet</span>
       </div>
       <nav className="nav">
-        {NAV.map(([to, label]) => (
+        {nav.map(([to, label]) => (
           <Link key={to} to={to} className={active(to) ? 'on' : ''}>{label}</Link>
         ))}
       </nav>
@@ -89,7 +92,7 @@ export function Footer() {
   return (
     <footer className="foot">
       <span>Testnet demo · Not an offer · Not affiliated with the listed companies</span>
-      <span>Settled in USDC on Arc</span>
+      <span>Settled in USDC on Arc · <Link to="/issuer">Issuer console</Link></span>
     </footer>
   )
 }

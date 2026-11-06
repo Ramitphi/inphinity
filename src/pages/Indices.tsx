@@ -59,7 +59,7 @@ export function Indices() {
           </tbody>
         </table>
       )}
-      <div className="note">NAV is the value of the fund's stocks at the exchange's sell price. Fees accrue to the creator as new shares, at most 2% a year.</div>
+      <div className="note">NAV is the fund's stocks at the live Chainlink price (mid), plus any idle USDC. Investors pay the 0.5% exchange spread when they invest or redeem. Fees accrue to the creator as new shares, at most 2% a year.</div>
     </>
   )
 }

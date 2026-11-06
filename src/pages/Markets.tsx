@@ -63,7 +63,7 @@ export function Prices() {
                 <td className="r" style={{ whiteSpace: 'nowrap' }}>
                   {s.inventory === undefined ? null : s.inventory > 0n
                     ? <Link className="btn sm" to={`/create?with=${encodeURIComponent(sym)}`}>Build<span className="hide-sm"> a fund with this</span> →</Link>
-                    : <span className="muted">not yet on Arc</span>}
+                    : <Link className="muted" to="/issuer" title="Issued on Base; the issuer has not sent it to Arc yet">not yet on Arc</Link>}
                 </td>
               </tr>
             )
