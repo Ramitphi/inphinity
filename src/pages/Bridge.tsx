@@ -55,7 +55,6 @@ function BridgeForm() {
   const { switchChain, isPending: switching } = useSwitchChain()
   const [symbol, setSymbol] = useState('tAAPL')
   const [amount, setAmount] = useState('')
-  const [dest, setDest] = useState<'me' | 'exchange'>('me')
   const [fee, setFee] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const debounced = useDebounced(amount, 500)
@@ -79,7 +78,8 @@ function BridgeForm() {
     query: { enabled: !!address && !!stock, retry: false },
   })
   const isAdmin = admin.isSuccess
-  const recipient = (isAdmin && dest === 'exchange' ? EXCHANGE : address) as `0x${string}` | undefined
+  // The issuer always bridges into the exchange's inventory; everyone else bridges to their own wallet.
+  const recipient = (isAdmin ? EXCHANGE : address) as `0x${string}` | undefined
   const arcBal = useReadContract({
     chainId: arcTestnet.id, address: stock?.token, abi: erc20Abi, functionName: 'balanceOf', args: recipient ? [recipient] : undefined,
     query: { enabled: !!recipient && !!stock },
@@ -131,11 +131,7 @@ function BridgeForm() {
           </div>
           {isAdmin && (
             <>
-              <div className="lbl"><span>Send to</span></div>
-              <div className="seg" style={{ border: '1px solid var(--ink)', margin: '6px 0 14px' }}>
-                <button className={dest === 'me' ? 'on' : ''} onClick={() => setDest('me')}>My Arc wallet</button>
-                <button className={dest === 'exchange' ? 'on' : ''} onClick={() => setDest('exchange')}>Exchange inventory</button>
-              </div>
+              <div className="lbl"><span>Send to</span><span>Exchange inventory</span></div>
             </>
           )}
           <label className="lbl" htmlFor="bridge-amt">
