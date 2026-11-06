@@ -3,12 +3,11 @@ import { useAccount, useReadContract, useReadContracts } from 'wagmi'
 import { arcTestnet } from 'viem/chains'
 import { isAddress, type Abi, type Address } from 'viem'
 import { EXCHANGE, EXPLORER, USDC, exchangeAbi, fundAbi } from '../lib/contracts'
-import { INCEPTION_TIP, qty, short, sinceInception, ticker, units, usd } from '../lib/format'
+import { INCEPTION_TIP, qty, short, sinceInception, ticker, units, usd, parse } from '../lib/format'
 import { Link } from '../lib/router'
 import { useTx } from '../lib/tx'
 import { POLL, useFunds, useStocks, useUsdcBalance } from '../hooks/data'
 import { AmountInput, Change, Flash, KV, Lcd, useDebounced, useNow } from '../components/ui'
-import { parse } from './Markets'
 import { ccipMessageUrl, ensAppUrl, useFundEns, type FundEns } from '../lib/ens'
 
 const chainId = arcTestnet.id
@@ -18,8 +17,8 @@ export function Indices() {
   const { funds, count, isLoading } = useFunds()
   return (
     <>
-      <h2 className="title">Index funds</h2>
-      <div className="sub">Baskets of tokenized stocks built by anyone. Invest USDC at NAV; the fund buys every stock at its target weight.</div>
+      <h2 className="title">Index funds from any tokenized stock</h2>
+      <div className="sub">Baskets of tokenized stocks built by anyone. Invest USDC at NAV; the fund buys every stock at its target weight. <Link to="/create">Build your own →</Link></div>
       {!isLoading && count === 0 ? (
         <div className="empty">
           <p style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 600 }}>No index funds yet.</p>

@@ -55,19 +55,19 @@ function Wallet() {
 }
 
 const NAV = [
-  ['/', 'Markets'], ['/indices', 'Indices'], ['/create', 'Create index'], ['/portfolio', 'Portfolio'], ['/bridge', 'Bridge from Base'],
+  ['/', 'Indices'], ['/create', 'Create'], ['/portfolio', 'Portfolio'], ['/prices', 'Prices'], ['/bridge', 'Bridge'],
 ] as const
 
 export function Header() {
   const path = usePath()
   const now = useNow(30_000)
   const nyse = nyseStatus(new Date(now))
-  const active = (to: string) => (to === '/' ? path === '/' : path.startsWith(to) || (to === '/indices' && path.startsWith('/index/')))
+  const active = (to: string) => (to === '/' ? path === '/' || path === '/indices' || path.startsWith('/index/') : path.startsWith(to))
   return (
     <header>
       <Tape />
       <div className="mast">
-        <div className="side">Tokenized stocks<br />&amp; indices, in USDC</div>
+        <div className="side">Index funds from<br />any tokenized stock</div>
         <h1><Link to="/">INPHINITY</Link></h1>
         <div className="right"><Wallet /></div>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ensLabel, expectedEnsName } from '../lib/ens'
 import { useAccount } from 'wagmi'
 import { parseEventLogs, type Abi, type Address } from 'viem'
@@ -27,6 +27,17 @@ export function Create() {
   const [desc, setDesc] = useState('')
   const [picks, setPicks] = useState<Pick[]>([])
   const [feeBps, setFeeBps] = useState(100)
+
+  // /create?with=AAPL (from the Prices board or Bridge): pre-select that stock once it is known to be available.
+  const preselect = useRef(new URLSearchParams(window.location.search).get('with')?.trim().toUpperCase() || null)
+  useEffect(() => {
+    const want = preselect.current
+    if (!want || inventoryLoading || !allStocks.length) return
+    preselect.current = null
+    const s = stocks.find((x) => ticker(x.symbol).toUpperCase() === want || x.symbol.toUpperCase() === want)
+    if (s) setPicks((ps) => (ps.some((p) => p.token === s.token) ? ps : splitEqually([...ps, { token: s.token, bps: 0 }])))
+    else toast.info(`${want} is not available on Arc yet, so a fund can't hold it.`)
+  }, [allStocks.length, inventoryLoading, stocks]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const total = picks.reduce((a, p) => a + p.bps, 0)
   const step1ok = name.trim().length > 0 && name.length <= 128 && symbol.trim().length > 0 && symbol.length <= 32 && desc.length <= 2048

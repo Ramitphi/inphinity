@@ -60,9 +60,11 @@ export function useUsdcBalance() {
 export type FundSummary = {
   address: Address; name: string; symbol: string; creator: Address; feeBps: number
   nav?: bigint; navPerShare?: bigint; totalSupply?: bigint; balance?: bigint
+  /** Constituent stock tokens (fund.getTokens()). */
+  tokens?: readonly Address[]
 }
 
-const FUND_FIELDS = ['name', 'symbol', 'creator', 'feeBps', 'nav', 'navPerShare', 'totalSupply'] as const
+const FUND_FIELDS = ['name', 'symbol', 'creator', 'feeBps', 'nav', 'navPerShare', 'totalSupply', 'getTokens'] as const
 
 export function useFunds() {
   const { address: user } = useAccount()
@@ -88,7 +90,8 @@ export function useFunds() {
     return {
       address: a, name: (r(0) as string) ?? '…', symbol: (r(1) as string) ?? '', creator: r(2) as Address,
       feeBps: Number(r(3) ?? 0), nav: r(4) as bigint | undefined, navPerShare: r(5) as bigint | undefined,
-      totalSupply: r(6) as bigint | undefined, balance: user ? (r(7) as bigint | undefined) : undefined,
+      totalSupply: r(6) as bigint | undefined, tokens: r(7) as readonly Address[] | undefined,
+      balance: user ? (r(8) as bigint | undefined) : undefined,
     }
   }), [addrs, details.data, user, per])
   return { funds, count: n, isLoading: count.isLoading || (n > 0 && (page.isLoading || details.isLoading)), refetch: () => { count.refetch(); page.refetch(); details.refetch() } }

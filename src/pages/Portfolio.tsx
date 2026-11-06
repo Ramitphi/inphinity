@@ -20,7 +20,7 @@ export function Portfolio() {
   if (!address) return (
     <>
       <h2 className="title">Portfolio</h2>
-      <div className="empty">Connect a wallet to see your USDC, stocks and fund shares.</div>
+      <div className="empty">Connect a wallet to see your fund shares and USDC.</div>
     </>
   )
   const held = stocks.map((s, i) => ({ s, bal: (bals.data?.[i]?.result as bigint | undefined) ?? 0n })).filter((x) => x.bal > 0n)
@@ -35,36 +35,40 @@ export function Portfolio() {
       <div className="navbig">
         <div><div className="stat">Total value (USDC)</div><Lcd big value={usd(total).replace(/,/g, '')} /></div>
         <div className="stat">Cash<b>${usd(usdc.data)}</b></div>
-        <div className="stat">Stocks<b>${usd(stockVal)}</b></div>
         <div className="stat">Funds<b>${usd(fundVal)}</b></div>
+        {stockVal > 0n && <div className="stat">Stocks<b>${usd(stockVal)}</b></div>}
       </div>
 
-      <h3 className="eyebrow" style={{ margin: '20px 0 6px' }}>Stocks</h3>
-      {held.length === 0 ? <div className="note">No stocks yet. <Link to="/">Buy on the board →</Link></div> : (
+      <h3 className="eyebrow" style={{ margin: '20px 0 6px' }}>Index funds</h3>
+      {myFunds.length === 0 ? <div className="note">No fund shares yet. <Link to="/">Browse index funds →</Link> or <Link to="/create">build your own →</Link></div> : (
         <table className="board">
-          <thead><tr><th>Symbol</th><th className="r">Units</th><th className="r hide-sm">Price</th><th className="r">Value</th><th className="r">Since listing</th></tr></thead>
-          <tbody>{held.map(({ s, bal }) => (
-            <tr key={s.token}><td className="sym">{ticker(s.symbol)}</td><td className="r mono">{units(bal)}</td>
-              <td className="r hide-sm"><Lcd value={usd(s.price).replace(/,/g, '')} /></td>
-              <td className="r mono">{usd((bal * s.price) / E18)}</td><td className="r"><Change v={s.change} /></td></tr>
-          ))}</tbody>
-        </table>
-      )}
-
-      <h3 className="eyebrow" style={{ margin: '24px 0 6px' }}>Index funds</h3>
-      {myFunds.length === 0 ? <div className="note">No fund shares yet. <Link to="/indices">Browse indices →</Link></div> : (
-        <table className="board">
-          <thead><tr><th>Fund</th><th className="r">Shares</th><th className="r hide-sm">NAV / share</th><th className="r">Value</th><th className="r" title={INCEPTION_TIP}>Since inception</th></tr></thead>
+          <thead><tr><th>Fund</th><th className="r">Shares</th><th className="r hide-sm">NAV / share</th><th className="r">Value</th><th className="r" title={INCEPTION_TIP}>Since inception</th><th className="r"><span className="hide-sm">Redeem</span></th></tr></thead>
           <tbody>{myFunds.map((f) => (
             <tr key={f.address}><td><Link to={`/index/${f.address}`}><b>{f.name}</b> <span className="sym muted" style={{ fontSize: 19 }}>{f.symbol}</span></Link></td>
               <td className="r mono">{qty(f.balance)}</td>
               <td className="r hide-sm"><Lcd value={usd(f.navPerShare).replace(/,/g, '')} /></td>
               <td className="r mono">{usd(((f.balance ?? 0n) * (f.navPerShare ?? 0n)) / E18)}</td>
-              <td className="r" title={INCEPTION_TIP}><Change v={sinceInception(f.navPerShare)} /></td></tr>
+              <td className="r" title={INCEPTION_TIP}><Change v={sinceInception(f.navPerShare)} /></td>
+              <td className="r"><Link className="btn sm" to={`/index/${f.address}`}>Redeem →</Link></td></tr>
           ))}</tbody>
         </table>
       )}
-      <div className="note">Stocks are valued at the oracle mid price; funds at NAV per share. USDC is the ERC-20 balance (6 decimals).</div>
+      {held.length > 0 && (
+        <>
+          <h3 className="eyebrow" style={{ margin: '24px 0 6px' }}>Stocks in your wallet</h3>
+          <table className="board">
+            <thead><tr><th>Symbol</th><th className="r">Units</th><th className="r hide-sm">Price</th><th className="r">Value</th><th className="r">Since listing</th></tr></thead>
+            <tbody>{held.map(({ s, bal }) => (
+              <tr key={s.token}><td className="sym">{ticker(s.symbol)}</td><td className="r mono">{units(bal)}</td>
+                <td className="r hide-sm"><Lcd value={usd(s.price).replace(/,/g, '')} /></td>
+                <td className="r mono">{usd((bal * s.price) / E18)}</td><td className="r"><Change v={s.change} /></td></tr>
+            ))}</tbody>
+          </table>
+          <div className="note">Single stocks are not traded in the app. These are tokens in your wallet, for example from bridging.</div>
+        </>
+      )}
+
+      <div className="note">Funds are valued at NAV per share; stocks at the oracle mid price. USDC is the ERC-20 balance (6 decimals).</div>
     </>
   )
 }

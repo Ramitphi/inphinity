@@ -1,4 +1,4 @@
-import { formatUnits } from 'viem'
+import { formatUnits, parseUnits } from 'viem'
 import { TOKEN_DECIMALS, USDC_DECIMALS } from './contracts'
 
 export const usd = (v: bigint | undefined, decimals = USDC_DECIMALS) =>
@@ -6,6 +6,11 @@ export const usd = (v: bigint | undefined, decimals = USDC_DECIMALS) =>
 
 export const qty = (v: bigint | undefined, max = 4) =>
   v === undefined ? '—' : Number(formatUnits(v, TOKEN_DECIMALS)).toLocaleString('en-US', { maximumFractionDigits: max })
+
+/** Parses a decimal input into base units; 0n for empty, zero or invalid input. */
+export const parse = (v: string, d: number) => {
+  try { return v && Number(v) > 0 ? parseUnits(v, d) : 0n } catch { return 0n }
+}
 
 export const pct = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}%`
 

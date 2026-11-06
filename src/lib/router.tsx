@@ -19,6 +19,12 @@ export function navigate(path: string) {
   emit()
 }
 
+/** Replaces the current history entry (for redirects from old routes). Keeps the query string. */
+export function redirect(path: string) {
+  window.history.replaceState(null, '', BASE + path + window.location.search)
+  emit()
+}
+
 export const usePath = () =>
   useSyncExternalStore((cb) => (listeners.add(cb), () => listeners.delete(cb)), currentPath)
 
