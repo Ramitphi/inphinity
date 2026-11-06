@@ -62,5 +62,69 @@
     "baseToken": "0x6a915806B8CE8545C4701CC041B1077Db5274f48",
     "arcToken": "0x6a915806B8CE8545C4701CC041B1077Db5274f48",
     "remoteSent": true
+  },
+  "tNFLX": {
+    "symbol": "tNFLX",
+    "name": "Mock Netflix",
+    "tokenId": "0x678035079cc615ca1aa6a61f189461543630aa81b083dbe127c861ef64028502",
+    "baseToken": "0xadBdd7e70f38048bEE1Ca1FBa5a1A73f6DD36AEC",
+    "arcToken": "0xadBdd7e70f38048bEE1Ca1FBa5a1A73f6DD36AEC",
+    "remoteSent": true
+  },
+  "tAMD": {
+    "symbol": "tAMD",
+    "name": "Mock AMD",
+    "tokenId": "0xf654972cd32084fb301172c6e00831f1fd40c487f415ec4ec24b69d8c1ac272d",
+    "baseToken": "0x95154926e13D5585874483ee7b25Cbe6D226D30F",
+    "arcToken": "0x95154926e13D5585874483ee7b25Cbe6D226D30F",
+    "remoteSent": true
+  },
+  "tJPM": {
+    "symbol": "tJPM",
+    "name": "Mock JPMorgan Chase",
+    "tokenId": "0xf95476d1451075457c2eecdc77d02fe619b67b654b598b897fff4303dc7fb3ca",
+    "baseToken": "0x5F17C5090dE9A5A2FeB5270ac3F9078D3530C744",
+    "arcToken": "0x5F17C5090dE9A5A2FeB5270ac3F9078D3530C744",
+    "remoteSent": true
+  },
+  "tV": {
+    "symbol": "tV",
+    "name": "Mock Visa",
+    "tokenId": "0xa745f74da56696525c5135ca3deff0505384dbcd949e746245610d991b7fac5f",
+    "baseToken": "0x70076eDE3b4994ABB85ffD36322d563aCdEEEc74",
+    "arcToken": "0x70076eDE3b4994ABB85ffD36322d563aCdEEEc74",
+    "remoteSent": true
+  },
+  "tWMT": {
+    "symbol": "tWMT",
+    "name": "Mock Walmart",
+    "tokenId": "0x83010be916955d047d014ebc7940addc1b2a17863f349f8ccd8b281d5ef239b7",
+    "baseToken": "0x56aAccF719d3648dCA20b41809663dB8ce9cE868",
+    "arcToken": "0x56aAccF719d3648dCA20b41809663dB8ce9cE868",
+    "remoteSent": true
+  },
+  "tKO": {
+    "symbol": "tKO",
+    "name": "Mock Coca-Cola",
+    "tokenId": "0xbced77af9782ae7fc5d90f53eeb6b89d60028fefe08ed721ad8fac70aa81ac57",
+    "baseToken": "0xEf9E358F2B415a5b4D13cfe64fc1936dF0f0275b",
+    "arcToken": "0xEf9E358F2B415a5b4D13cfe64fc1936dF0f0275b",
+    "remoteSent": true
+  },
+  "tDIS": {
+    "symbol": "tDIS",
+    "name": "Mock Walt Disney",
+    "tokenId": "0x9211627b8c085017ac0bfdec70640db1f5d7d0ee0d095fbccc3d9ba0395b2f96",
+    "baseToken": "0x6C2e16e5e0E309fB0c0E3468E4613454e92c22dF",
+    "arcToken": "0x6C2e16e5e0E309fB0c0E3468E4613454e92c22dF",
+    "remoteSent": true
+  },
+  "tORCL": {
+    "symbol": "tORCL",
+    "name": "Mock Oracle",
+    "tokenId": "0x34a8f3ce94d8c54e92811f6f2093517a06bf509ff796805f58d92a9ea7d767ad",
+    "baseToken": "0xd0C2d2f5288F1BD2527207122Df0696B2B6CFe5B",
+    "arcToken": "0xd0C2d2f5288F1BD2527207122Df0696B2B6CFe5B",
+    "remoteSent": true
   }
 }
