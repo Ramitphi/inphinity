@@ -9,6 +9,7 @@ import { useTx } from '../lib/tx'
 import { POLL, useFunds, useStocks, useUsdcBalance } from '../hooks/data'
 import { AmountInput, Change, Flash, KV, Lcd, useDebounced, useNow } from '../components/ui'
 import { parse } from './Markets'
+import { ensAppUrl, useFundEns, type FundEns } from '../lib/ens'
 
 const chainId = arcTestnet.id
 const SHADES = ['#0a0a0a', '#4a4a4a', '#7a7a7a', '#a5a5a5', '#cfcfcf', '#2a2a2a', '#5f5f5f', '#909090', '#bababa', '#e2e2e2']
@@ -44,6 +45,7 @@ export function Indices() {
                     <span style={{ fontWeight: 700, fontSize: 17 }}>{f.name}</span>{' '}
                     <span className="sym muted" style={{ fontSize: 13 }}>{f.symbol}</span>
                   </Link>
+                  <FundEnsName fund={f.address} symbol={f.symbol} name={f.name} />
                 </td>
                 <Flash as="td" className="r" value={f.navPerShare === undefined ? undefined : Number(f.navPerShare)}>
                   <Link to={`/index/${f.address}`} style={{ textDecoration: 'none' }}><Lcd value={usd(f.navPerShare).replace(/,/g, '')} /></Link>
@@ -138,6 +140,8 @@ function FundView({ fund }: { fund: Address }) {
         <div className="wbar" title="Target weights">
           {holdings.map((h, i) => <span key={h.token} style={{ width: `${h.weight / 100}%`, background: SHADES[i % SHADES.length] }} />)}
         </div>
+        <EnsBox fund={fund} symbol={symbol} name={name} creator={creator} feeBps={feeBps}
+          weights={holdings.map((h) => `${h.sym}:${h.weight}`).join(',')} />
         {supply === 0n && <div className="info">No investors yet. The first investment sets the starting NAV at 1.00 USDC per share.</div>}
       </div>
       <div>
@@ -230,5 +234,64 @@ function InvestBox({ fund, symbol, shares, locked, onDone }: { fund: Address; sy
         </div>
       </div>
     </div>
+  )
+}
+
+/** Small ENS name under a fund in the list, when the relayer has named it. */
+function FundEnsName({ fund, symbol, name }: { fund: Address; symbol: string; name: string }) {
+  const ens = useFundEns(fund, symbol || undefined, name === '…' ? undefined : name)
+  if (!ens.data) return null
+  return (
+    <div className="mono muted" style={{ fontSize: 12, marginTop: 2 }}>
+      <a href={ensAppUrl(ens.data.name)} target="_blank" rel="noopener noreferrer">{ens.data.name} ↗</a>
+    </div>
+  )
+}
+
+/**
+ * The fund's ENSv2 name on Sepolia and its records, each checked against this fund contract.
+ * A name that resolves here was written by the Inphinity registry, not by the fund creator.
+ */
+function EnsBox({ fund, symbol, name, creator, feeBps, weights }: {
+  fund: Address; symbol: string; name: string; creator: Address; feeBps: number; weights: string
+}) {
+  const ens = useFundEns(fund, symbol, name)
+  return (
+    <div className="box" style={{ marginTop: 16 }}>
+      <h3><span>ENS name</span><span className="muted">ENSv2 · Sepolia</span></h3>
+      <div className="in">
+        {ens.isLoading ? <span className="skel" style={{ width: '60%' }} /> : !ens.data ? (
+          <div className="note" style={{ marginTop: 0 }}>
+            Not named yet. The Inphinity relayer registers each new fund as a name under inphinity.eth, usually within a minute.
+          </div>
+        ) : <EnsRecords ens={ens.data} fund={fund} checks={{ creator, feeBps, weights }} />}
+      </div>
+    </div>
+  )
+}
+
+function EnsRecords({ ens, fund, checks }: { ens: FundEns; fund: Address; checks: { creator: Address; feeBps: number; weights: string } }) {
+  const r = ens.records
+  // The relayer writes weights with the token's onchain symbol (e.g. tAAPL); the page shows tickers.
+  const norm = (w?: string) => (w ?? '').split(',').map((x) => x.replace(/^t(?=[A-Z])/, '')).join(',')
+  const rows: [string, string | undefined, boolean][] = [
+    [`Arc address`, fund, true],
+    ['Weights', r['inphinity.weights'], norm(r['inphinity.weights']) === norm(checks.weights)],
+    ['Fee', r['inphinity.fee'] && `${(Number(r['inphinity.fee']) / 100).toFixed(2)}%`, r['inphinity.fee'] === String(checks.feeBps)],
+    ['Creator', r['inphinity.creator'] && short(r['inphinity.creator'] as Address), r['inphinity.creator']?.toLowerCase() === checks.creator.toLowerCase()],
+  ]
+  return (
+    <>
+      <div style={{ fontWeight: 700, fontSize: 17 }}>
+        <a href={ensAppUrl(ens.name)} target="_blank" rel="noopener noreferrer">{ens.name} ↗</a>
+      </div>
+      {rows.map(([k, v, ok]) => (
+        <KV key={k} k={k}><span className="mono">{v ?? '—'}</span> <span className={ok ? 'up' : 'down'}>{ok ? '✓' : '✗'}</span></KV>
+      ))}
+      <div className="note">
+        ✓ means the ENS record matches this fund contract on Arc. The name token belongs to the creator, but only the
+        registry can edit its records, and the creator cannot point the name at another resolver or transfer it.
+      </div>
+    </>
   )
 }
