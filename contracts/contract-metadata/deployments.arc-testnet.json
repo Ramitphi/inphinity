@@ -1,0 +1,14 @@
+{
+  "network": "ARC-TESTNET",
+  "chainId": 5042002,
+  "owner": "0xC658A9Bd5ADE6CCd87874f5De925528CE57b4C93",
+  "usdc": "0x3600000000000000000000000000000000000000",
+  "creForwarder": "0x6E9EE680ef59ef64Aa8C7371279c27E496b5eDc1",
+  "contracts": {
+    "StockExchange": "0x93662de514b981f8c7bf97085e359e0f18034804",
+    "IndexFactory": "0x9fa4034efb237a7c154adea20b1ccfa0cd538b11",
+    "SIPManager": "0xd96ea5a6c776eac72e5da4f7abb838b5da053f3a"
+  },
+  "indexRegistrar": "0x0000000000000000000000000000000000000000",
+  "note": "IndexFund is created per fund by IndexFactory; its ABI is in IndexFund.abi.json. Owner must call StockExchange.setTrustedFactory(IndexFactory) before funds can be created."
+}

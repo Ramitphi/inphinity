@@ -21,7 +21,10 @@ contract IndexFund is ERC20, ReentrancyGuard {
     address[] public tokens;
     uint16[] public weightsBps;
     uint256 public lastFeeAccrual;
+    /// @notice Timestamp when an account's locked share bucket becomes redeemable.
     mapping(address => uint256) public unlockTime;
+    /// @notice Stored locked quantity; use lockedSharesOf for the currently active lock.
+    mapping(address => uint256) public lockedAmount;
     address private constant DEAD = 0x000000000000000000000000000000000000dEaD;
     uint256 private constant LOCKED_SHARES = 1000;
     uint256 private constant FEE_DENOMINATOR = 10000 * 365 days;
@@ -33,8 +36,12 @@ contract IndexFund is ERC20, ReentrancyGuard {
     error FeePeriodTooLong();
     error LockedShares();
     error HoldActive(uint256 unlockAt);
+    error NotConstituent(address token);
 
     event Invested(address indexed investor, uint256 usdcIn, uint256 shares);
+    event InvestedInKind(
+        address indexed investor, address indexed receiver, address[] tokens, uint256[] amounts, uint256 shares
+    );
     event Redeemed(address indexed investor, uint256 shares, uint256 usdcOut);
     event FeeAccrued(address indexed creator, uint256 shares, uint256 timestamp);
 
@@ -70,6 +77,7 @@ contract IndexFund is ERC20, ReentrancyGuard {
 
     /// @notice Buys the fixed-weight basket, then mints for net mid-price value at pre-deposit NAV.
     /// @dev First deposit mints receivedValue*1e12 total shares, with 1000 permanently locked.
+    /// Only the investor's newly minted shares enter the timed lock bucket.
     function invest(uint256 usdcIn, uint256 minShares) external nonReentrant returns (uint256 shares) {
         if (usdcIn < 1e6) revert InvalidAmount();
         _accrueFee();
@@ -89,17 +97,62 @@ contract IndexFund is ERC20, ReentrancyGuard {
         // so the investor, not existing holders, pays the execution spread.
         shares = _investmentShares(nav() - assets, supply, assets);
         if (shares == 0 || shares < minShares) revert SlippageExceeded();
-        uint256 unlockAt = block.timestamp + IStockVenue(venue).holdSeconds();
-        if (unlockAt > unlockTime[msg.sender]) unlockTime[msg.sender] = unlockAt;
+        _addLock(msg.sender, shares, block.timestamp + IStockVenue(venue).holdSeconds());
         if (supply == 0) _mint(DEAD, LOCKED_SHARES);
         _mint(msg.sender, shares);
         emit Invested(msg.sender, usdcIn, shares);
     }
 
-    /// @notice Burns shares after fee accrual, sells the pro-rata basket and pays its idle cash slice.
+    /// @notice Deposits approved wrapped stocks at mid-NAV and mints shares to the receiver.
+    /// @dev Accepts a subset of constituents; does not rebalance the basket to its target weights.
+    /// Only newly minted shares are locked; the receiver's existing free shares stay free.
+    function investInKind(address[] calldata tokens_, uint256[] calldata amounts, uint256 minShares, address receiver)
+        external nonReentrant returns (uint256 shares)
+    {
+        if (receiver == address(0) || receiver == DEAD) revert InvalidConfiguration();
+        if (tokens_.length == 0 || tokens_.length != amounts.length || tokens_.length > tokens.length) {
+            revert InvalidAmount();
+        }
+        for (uint256 i; i < tokens_.length; ++i) {
+            if (amounts[i] == 0) revert InvalidAmount();
+            bool constituent;
+            for (uint256 j; j < tokens.length; ++j) {
+                if (tokens_[i] == tokens[j]) {
+                    constituent = true;
+                    break;
+                }
+            }
+            if (!constituent) revert NotConstituent(tokens_[i]);
+            for (uint256 j; j < i; ++j) {
+                if (tokens_[i] == tokens_[j]) revert InvalidAmount();
+            }
+        }
+        _accrueFee();
+        uint256 supply = totalSupply();
+        uint256 assets = nav(); // Checks every constituent price before accepting stocks.
+        for (uint256 i; i < tokens_.length; ++i) {
+            IERC20 token = IERC20(tokens_[i]);
+            uint256 beforeBalance = token.balanceOf(address(this));
+            token.safeTransferFrom(msg.sender, address(this), amounts[i]);
+            uint256 afterBalance = token.balanceOf(address(this));
+            if (afterBalance < beforeBalance || afterBalance - beforeBalance != amounts[i]) revert InvalidAmount();
+        }
+        // Match nav() rounding per holding rather than rounding each deposited amount in isolation.
+        uint256 value = nav() - assets;
+        if (value < 1e6) revert InvalidAmount();
+        shares = _investmentShares(value, supply, assets);
+        if (shares == 0 || shares < minShares) revert SlippageExceeded();
+        _addLock(receiver, shares, block.timestamp + IStockVenue(venue).holdSeconds());
+        if (supply == 0) _mint(DEAD, LOCKED_SHARES);
+        _mint(receiver, shares);
+        emit InvestedInKind(msg.sender, receiver, tokens_, amounts, shares);
+    }
+
+    /// @notice Burns free shares after fee accrual, sells the pro-rata basket and pays its idle cash slice.
     function redeem(uint256 shares, uint256 minUsdcOut) external nonReentrant returns (uint256 usdcOut) {
         if (shares == 0) revert InvalidAmount();
-        if (block.timestamp < unlockTime[msg.sender]) revert HoldActive(unlockTime[msg.sender]);
+        uint256 free = balanceOf(msg.sender) - lockedSharesOf(msg.sender);
+        if (shares > free) revert HoldActive(unlockTime[msg.sender]);
         _accrueFee();
         // Validate the full basket, even where the pro-rata quantity rounds to zero.
         nav();
@@ -188,7 +241,7 @@ contract IndexFund is ERC20, ReentrancyGuard {
     }
 
     /// @notice Estimates a rounded-down pro-rata liquidation at sell prices, including pending fees.
-    /// @dev Does not check caller unlock time or guarantee venue liquidity or future execution prices.
+    /// @dev Does not check caller free shares or guarantee venue liquidity or future execution prices.
     function previewRedeem(uint256 shares) external view returns (uint256 usdcOut) {
         uint256 supply = totalSupply();
         supply += _pendingFee(supply);
@@ -213,12 +266,38 @@ contract IndexFund is ERC20, ReentrancyGuard {
     /// @notice Returns the immutable weights in basis points.
     function getWeights() external view returns (uint16[] memory) { return weightsBps; }
 
+    /// @notice Returns the account's currently locked shares, capped at its balance.
+    function lockedSharesOf(address a) public view returns (uint256) {
+        return block.timestamp < unlockTime[a] ? Math.min(lockedAmount[a], balanceOf(a)) : 0;
+    }
+
+    /// @dev Adds only the supplied quantity; expired buckets are replaced, not revived.
+    /// Active locked quantities share the later expiry without locking any free shares.
+    function _addLock(address a, uint256 amount, uint256 until) private {
+        if (amount == 0 || until <= block.timestamp) return;
+        if (block.timestamp >= unlockTime[a]) {
+            lockedAmount[a] = amount;
+            unlockTime[a] = until;
+        } else {
+            lockedAmount[a] += amount;
+            unlockTime[a] = Math.max(unlockTime[a], until);
+        }
+    }
+
     function _update(address from, address to, uint256 amount) internal override {
         if (from == DEAD) revert LockedShares();
-        // Includes transferFrom and SIP forwarding; minting and burning do not propagate holds.
-        if (amount != 0 && from != address(0) && to != address(0)
-            && unlockTime[from] > unlockTime[to]) {
-            unlockTime[to] = unlockTime[from];
+        // Spend free shares first; locked shares remain transferable, including SIP forwarding.
+        // Move only their locked quantity using pre-transfer balances. Mints and burns skip this.
+        if (amount != 0 && from != address(0) && to != address(0)) {
+            uint256 locked = lockedSharesOf(from);
+            uint256 free = balanceOf(from) - locked;
+            uint256 moved = amount > free ? amount - free : 0;
+            if (moved != 0) {
+                if (block.timestamp < unlockTime[from]) {
+                    lockedAmount[from] -= Math.min(lockedAmount[from], moved);
+                }
+                _addLock(to, moved, unlockTime[from]);
+            }
         }
         super._update(from, to, amount);
     }
