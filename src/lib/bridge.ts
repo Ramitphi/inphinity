@@ -3,20 +3,12 @@
 // localStorage so a reload can keep watching for the tokens to land on Arc.
 import { useSyncExternalStore } from 'react'
 import type { EIP1193Provider } from 'viem'
+import { BRIDGEABLE } from './stocks'
 
 export const BASE_EXPLORER = 'https://sepolia.basescan.org'
 
-// CCTPx token ids (bytes32) from issuer/deployments.json. The token address is the same on Base Sepolia and Arc.
-export const TOKEN_ID: Record<string, `0x${string}`> = {
-  tAAPL: '0x1b74494bb815db7ea0cf94909db07a2ec21f109fae6fbd3276f31b0d72092ef4',
-  tMSFT: '0x39afcc0d3dd1bf27fb4fc1c9a717612a0a5e2324224f6954e2b6558da0033c64',
-  tNVDA: '0x9ab5edaaea24e9523d025fcdafb9ebd33c8c5ff8d37864a4b379e8fba2d69eba',
-  tTSLA: '0xe42e7f910eb5f821cc627e741cd5b65a8e6220e5e4066867e4496c6de413090d',
-  tAMZN: '0x10b72a0de5d4c460fc4fe05ddb4ddb6e3985a98dc051ac8a2e363f9ef7573e40',
-  tGOOGL: '0x86d53a65b0623b4c2f7361b46582d6c94648290396c6c849bf1aea92894ad976',
-  tMETA: '0x43fd17f5b0e844c7ad50469e85ec4ff286dd2d8239251951ab7fdbe3c209bcad',
-  tSPY: '0xc91fad91315f1e16ddd6862f0789bf60e4fe0ab9c81b556719568575b7c52d8d',
-}
+// CCTPx token ids (bytes32) per symbol, from the stock catalog.
+export const TOKEN_ID: Record<string, `0x${string}`> = Object.fromEntries(BRIDGEABLE.map((s) => [s.symbol, s.tokenId]))
 
 export const STEPS = [
   ['approve', 'Approve on Base Sepolia'],
@@ -96,8 +88,9 @@ export async function startBridge(p: Params) {
     const { kit, adapter } = await kitFor(p.provider)
     type Ev = { values?: { transactionHash?: string; status?: string } }
     const on = (m: 'approve' | 'transfer' | 'fetchAttestation' | 'forward', fn: (e: Ev) => void) => kit.on(m, fn as never)
-    on('approve', (e) => { step('approve', 'done', e.values?.transactionHash); step('transfer', 'active') })
-    on('transfer', (e) => { step('approve', 'done'); step('transfer', 'done', e.values?.transactionHash); step('fetchAttestation', 'active') })
+    // Bridge Kit also reports a failed step, so only a step with a transaction hash counts as done.
+    on('approve', (e) => { if (e.values?.transactionHash) { step('approve', 'done', e.values.transactionHash); step('transfer', 'active') } })
+    on('transfer', (e) => { if (e.values?.transactionHash) { step('approve', 'done'); step('transfer', 'done', e.values.transactionHash); step('fetchAttestation', 'active') } })
     on('fetchAttestation', (e) => { if (e.values?.status === 'complete') { step('fetchAttestation', 'done'); step('forward', 'active') } })
     on('forward', (e) => step('forward', 'done', e.values?.transactionHash))
     const res = await kit.bridge(bridgeParams(adapter, p)) as { state: string; steps: { name: string; state: string; errorMessage?: string; error?: { message?: string } }[] }

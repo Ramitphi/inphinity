@@ -217,3 +217,4 @@ h2.title { font-family: var(--dot); font-weight: 900; font-size: 34px; letter-sp
   .steps button { font-size: 16px; }
 }
 body { line-height: 1.25; }
+.btn.block { white-space: normal; text-align: center; line-height: 1.15; }
