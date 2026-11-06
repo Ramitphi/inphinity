@@ -3,9 +3,9 @@ import { arcTestnet } from 'viem/chains'
 import type { Address } from 'viem'
 import { EXPLORER, FACTORY, factoryAbi, fundAbi, COMPANY } from '../lib/contracts'
 import { ccipMessageUrl, ensAppUrl, ensExplorerRecordsUrl, useEnsProfile, PROFILE_KEYS } from '../lib/ens'
-import { short, usd, qty } from '../lib/format'
+import { INCEPTION_TIP, short, sinceInception, usd, qty } from '../lib/format'
 import { Link } from '../lib/router'
-import { KV, Lcd } from '../components/ui'
+import { Change, KV, Lcd } from '../components/ui'
 import { POLL } from '../hooks/data'
 
 const chainId = arcTestnet.id
@@ -84,6 +84,7 @@ export function EnsName({ name }: { name: string }) {
             <div className="stat">NAV per share (live, Arc)</div>
             <Lcd big value={nps === undefined ? '—' : usd(nps).replace(/,/g, '')} />
           </div>
+          <div title={INCEPTION_TIP}><Change v={sinceInception(nps)} /><div className="stat" style={{ marginTop: 4 }}>since inception</div></div>
           <div className="stat">AUM<b>${usd(aum)}</b></div>
           <div className="stat">Fee<b>{(fee / 100).toFixed(2)}% / yr</b></div>
           <div className="stat">Shares out<b>{qty(supply, 2)}</b></div>

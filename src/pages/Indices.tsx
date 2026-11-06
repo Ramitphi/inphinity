@@ -3,7 +3,7 @@ import { useAccount, useReadContract, useReadContracts } from 'wagmi'
 import { arcTestnet } from 'viem/chains'
 import { isAddress, type Abi, type Address } from 'viem'
 import { EXCHANGE, EXPLORER, USDC, exchangeAbi, fundAbi } from '../lib/contracts'
-import { qty, short, ticker, units, usd } from '../lib/format'
+import { INCEPTION_TIP, qty, short, sinceInception, ticker, units, usd } from '../lib/format'
 import { Link } from '../lib/router'
 import { useTx } from '../lib/tx'
 import { POLL, useFunds, useStocks, useUsdcBalance } from '../hooks/data'
@@ -31,13 +31,14 @@ export function Indices() {
             <tr>
               <th>Fund</th>
               <th className="r">NAV / share</th>
+              <th className="r" title={INCEPTION_TIP}>Since inception</th>
               <th className="r hide-sm">Fund value</th>
               <th className="r hide-sm">Fee</th>
               <th className="r hide-sm">Creator</th>
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={5}><span className="skel" style={{ width: '100%' }} /></td></tr>}
+            {isLoading && <tr><td colSpan={6}><span className="skel" style={{ width: '100%' }} /></td></tr>}
             {funds.map((f) => (
               <tr key={f.address} className="click">
                 <td>
@@ -50,6 +51,7 @@ export function Indices() {
                 <Flash as="td" className="r" value={f.navPerShare === undefined ? undefined : Number(f.navPerShare)}>
                   <Link to={`/index/${f.address}`} style={{ textDecoration: 'none' }}><Lcd value={usd(f.navPerShare).replace(/,/g, '')} /></Link>
                 </Flash>
+                <td className="r" title={INCEPTION_TIP}><Change v={sinceInception(f.navPerShare)} /></td>
                 <td className="r mono hide-sm">${usd(f.nav)}</td>
                 <td className="r mono hide-sm">{(f.feeBps / 100).toFixed(2)}%</td>
                 <td className="r mono hide-sm">{short(f.creator)}</td>
@@ -99,7 +101,6 @@ function FundView({ fund }: { fund: Address }) {
     const value = s ? (hBalances[i] * s.price) / 10n ** 18n : undefined
     return { token: t, sym: s ? ticker(s.symbol) : short(t), company: s?.company ?? '', weight: Number(hWeights[i]), units: hBalances[i], value, change: s?.change }
   })
-  const blended = holdings.reduce((a, h) => a + (h.change ?? 0) * h.weight / 10000, 0)
   const shares = pos.data?.[0]?.result as bigint | undefined
   const locked = pos.data?.[1]?.result as bigint | undefined
   const unlock = pos.data?.[2]?.result as bigint | undefined
@@ -118,13 +119,13 @@ function FundView({ fund }: { fund: Address }) {
             <div className="stat">NAV per share</div>
             <Flash value={nps === undefined ? undefined : Number(nps)} as="div"><Lcd big value={usd(nps).replace(/,/g, '')} /></Flash>
           </div>
-          <div><Change v={blended} /><div className="stat" style={{ marginTop: 4 }}>vs listing</div></div>
+          <div title={INCEPTION_TIP}><Change v={sinceInception(nps)} /><div className="stat" style={{ marginTop: 4 }}>since inception</div></div>
           <div className="stat">Fund value<b>${usd(nav)}</b></div>
           <div className="stat">Fee<b>{(feeBps / 100).toFixed(2)}% / yr</b></div>
           <div className="stat">Shares out<b>{qty(supply, 2)}</b></div>
         </div>
         <table className="board">
-          <thead><tr><th>Holding</th><th className="r">Target</th><th className="r hide-sm">Units</th><th className="r">Value</th><th className="r">Change</th></tr></thead>
+          <thead><tr><th>Holding</th><th className="r">Target</th><th className="r hide-sm">Units</th><th className="r">Value</th><th className="r">Since listing</th></tr></thead>
           <tbody>
             {holdings.map((h, i) => (
               <tr key={h.token}>
