@@ -15,7 +15,7 @@ import {
   type ContractFunctionName,
   type Hex,
 } from "viem";
-import { DRY_RUN, STATE_FILE, loadAccount, sepoliaClient, walletFor, actingAddress } from "./config";
+import { DRY_RUN, STATE_FILE, loadAccount, walletFor, publicFor, actingAddress, type ChainName } from "./config";
 
 // ---------------------------------------------------------------------------
 // ENSv2 Enhanced Access Control role bitmaps.
@@ -158,6 +158,9 @@ export type State = {
   resolver?: Address;
   resolverSalt?: string;
   funds?: Record<string, { label: string; fund: Address; creator: Address; tx?: Hex }>;
+  /** Chainlink CCIP bridge (ccip-setup.ts). */
+  arcEnsRegistrar?: Address;
+  ensReceiver?: Address;
 };
 
 export function loadState(): State {
@@ -176,7 +179,12 @@ export function saveState(s: State) {
 
 export function signer() {
   const account = loadAccount();
-  return { account, from: actingAddress(account), wallet: account ? walletFor(account) : null };
+  return {
+    account,
+    from: actingAddress(account),
+    wallet: account ? walletFor(account) : null,
+    arcWallet: account ? walletFor(account, "arc") : null,
+  };
 }
 
 /**
@@ -194,11 +202,15 @@ export async function send<
     abi: abi;
     functionName: fn;
     args: ContractFunctionArgs<abi, "nonpayable" | "payable", fn>;
+    value?: bigint;
   },
+  chain: ChainName = "sepolia",
 ): Promise<{ hash?: Hex; result?: unknown }> {
+  const client = publicFor(chain);
+  const wallet = chain === "arc" ? s.arcWallet : s.wallet;
   let result: unknown;
   try {
-    const sim = await sepoliaClient.simulateContract({ ...(req as any), account: s.account ?? s.from });
+    const sim = await client.simulateContract({ ...(req as any), account: s.account ?? s.from });
     result = sim.result;
   } catch (e) {
     const msg = explain(e);
@@ -208,12 +220,12 @@ export async function send<
     }
     throw new Error(`${what}: simulation reverted: ${msg}`);
   }
-  if (DRY_RUN || !s.wallet) {
-    console.log(`  [dry-run] ${what}: would send ${String(req.functionName)} to ${req.address} (simulation ok)`);
+  if (DRY_RUN || !wallet) {
+    console.log(`  [dry-run] ${what}: would send ${String(req.functionName)} to ${req.address} on ${chain} (simulation ok)`);
     return { result };
   }
-  const hash = await s.wallet.writeContract(req as any);
-  const rc = await sepoliaClient.waitForTransactionReceipt({ hash });
+  const hash = await wallet.writeContract(req as any);
+  const rc = await client.waitForTransactionReceipt({ hash });
   if (rc.status !== "success") throw new Error(`${what}: tx ${hash} reverted`);
   console.log(`  ${what}: ${hash} (gas ${rc.gasUsed})`);
   return { hash, result };
@@ -239,3 +251,40 @@ export function sepoliaTx(hash?: Hex) {
 
 
 export const DISCLAIMER = "Testnet mock tokens, not real securities.";
+
+/** Deploys a contract from a compiled artifact (dry-run: only estimates gas). Returns its address. */
+export async function deploy(
+  s: ReturnType<typeof signer>,
+  what: string,
+  artifact: { abi: Abi; bytecode: Hex },
+  args: readonly unknown[],
+  chain: ChainName,
+): Promise<Address | undefined> {
+  const client = publicFor(chain);
+  const wallet = chain === "arc" ? s.arcWallet : s.wallet;
+  if (DRY_RUN || !wallet) {
+    const { encodeDeployData } = await import("viem");
+    const data = encodeDeployData({ abi: artifact.abi, bytecode: artifact.bytecode, args: args as any });
+    const gas = await client.estimateGas({ account: s.from, data }).catch((e) => explain(e));
+    console.log(`  [dry-run] ${what}: would deploy on ${chain} (gas estimate ${gas})`);
+    return undefined;
+  }
+  const hash = await wallet.deployContract({ abi: artifact.abi, bytecode: artifact.bytecode, args: args as any } as any);
+  const rc = await client.waitForTransactionReceipt({ hash });
+  if (rc.status !== "success" || !rc.contractAddress) throw new Error(`${what}: deploy tx ${hash} failed`);
+  console.log(`  ${what}: ${rc.contractAddress} (tx ${hash}, gas ${rc.gasUsed})`);
+  return rc.contractAddress;
+}
+
+/** Sends native value (Arc: USDC with 18 decimals). */
+export async function sendValue(s: ReturnType<typeof signer>, what: string, to: Address, value: bigint, chain: ChainName) {
+  const wallet = chain === "arc" ? s.arcWallet : s.wallet;
+  if (DRY_RUN || !wallet) {
+    console.log(`  [dry-run] ${what}: would send ${value} wei to ${to} on ${chain}`);
+    return;
+  }
+  const hash = await (wallet as any).sendTransaction({ to, value });
+  const rc = await publicFor(chain).waitForTransactionReceipt({ hash });
+  if (rc.status !== "success") throw new Error(`${what}: tx ${hash} failed`);
+  console.log(`  ${what}: ${hash}`);
+}

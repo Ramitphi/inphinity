@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { expectedEnsName } from '../lib/ens'
+import { ensLabel, expectedEnsName } from '../lib/ens'
 import { useAccount } from 'wagmi'
 import { parseEventLogs, type Abi, type Address } from 'viem'
 import { toast } from 'sonner'
@@ -47,7 +47,8 @@ export function Create() {
     const ordered = stocks.map((s) => picks.find((p) => p.token === s.token)).filter(Boolean) as Pick[]
     const r = await send(`Create ${symbol.trim()}`, {
       address: FACTORY, abi: factoryAbi as Abi, functionName: 'createIndex',
-      args: [name.trim(), symbol.trim(), '', ordered.map((p) => p.token), ordered.map((p) => p.bps), feeBps, desc.trim()],
+      // ENS label: required by the factory once the Chainlink CCIP registrar is on (ignored otherwise).
+      args: [name.trim(), symbol.trim(), ensLabel(symbol.trim()) ?? ensLabel(name.trim()) ?? 'fund', ordered.map((p) => p.token), ordered.map((p) => p.bps), feeBps, desc.trim()],
     })
     if (!r) return
     const ev = parseEventLogs({ abi: factoryAbi, logs: r.logs, eventName: 'IndexCreated' })[0]
@@ -130,7 +131,7 @@ export function Create() {
               </div>
               <div className="note">You earn the fee as newly minted fund shares, accrued continuously. Weights are fixed once the fund is created.</div>
               {expectedEnsName(symbol.trim(), name.trim()) && (
-                <div className="note">ENS: your fund will be listed as <b className="mono">{expectedEnsName(symbol.trim(), name.trim())}</b> on Sepolia (ENSv2), owned by you, a minute or so after creation.</div>
+                <div className="note">ENS: your fund will be listed as <b className="mono">{expectedEnsName(symbol.trim(), name.trim())}</b> on Sepolia (ENSv2), owned by you. Arc sends it to Ethereum through Chainlink CCIP, so it appears a few minutes after creation.</div>
               )}
               <table className="board" style={{ marginTop: 16 }}>
                 <thead><tr><th>Stock</th><th className="r">Weight</th><th className="r">Change</th></tr></thead>

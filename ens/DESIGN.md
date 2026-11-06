@@ -11,8 +11,9 @@ verifiable registry of every real fund:
 A wallet, explorer or another protocol can look a fund up by name. It gets an answer that only the
 registry operator can write, and that always matches the chain.
 
-We wrote **no new Solidity**. Everything below is ENS's own ENSv2 contracts on Sepolia (the live
-`deploy/mainnet-v2-20261002` set), configured through their permission system.
+The ENS side is ENS's own ENSv2 contracts on Sepolia (the live `deploy/mainnet-v2-20261002` set),
+configured through their permission system. The only contracts we wrote are the two ends of the
+Chainlink CCIP bridge (section 8), which carry fund data from Arc into ENSv2.
 
 ## ENSv2 features used, and why each one matters here
 
@@ -94,6 +95,25 @@ disclaimer are also written per fund.
 root → .eth registry → our UserRegistry → resolver, then calls the resolver's `resolve(name, data)`.
 Linked and default-bundle names work through the same path.
 
+### 8. Chainlink CCIP: Arc writes to ENSv2 directly
+Funds live on Arc, but ENS lives on Ethereum, and Arc contracts cannot call Sepolia. A relayer
+bridges the gap offchain. CCIP mode makes it onchain:
+
+- `IndexFactory.createIndex` calls our `ArcEnsRegistrar` through the factory's existing registrar
+  hook. It reads the new fund (name, symbol, fee, token symbols and weights) and sends one CCIP
+  message to Sepolia, paying ~0.51 USDC in Arc's native token. The creator's free-text description
+  is deliberately not sent.
+- `InphinityEnsReceiver` on Sepolia accepts only the CCIP router, only Arc's chain selector, and
+  only our registrar. It then does what the relayer does: registers the name to the creator with
+  only `ROLE_RENEW`, writes the record bundle, and links the symbol and `latest`. It also stores
+  the CCIP message id in `inphinity.ccip`, so every name points to its own cross-chain proof on
+  ccip.chain.link.
+- ENSv2 access control is what makes this safe. The receiver holds exactly `ROLE_REGISTRAR` on our
+  UserRegistry and `SET_ADDRESS | SET_TEXT | LINK` on the resolver, nothing else. Revoking those
+  roles stops it instantly.
+- Naming never blocks a fund: the Arc side never reverts. A failed Sepolia step is stored and can
+  be retried, and `IndexFactory.setRegistrar(0)` turns the whole path off.
+
 ## Data flow
 
 ```
@@ -117,7 +137,8 @@ Every fund name is created from a real `IndexCreated` event and real fund contra
 
 ## Limits we accept for a testnet demo
 
-- The relayer is trusted to copy Arc data faithfully. Anyone can audit it with `verify.ts`, but it
-  is not trustless (a CCIP-Read gateway or an Arc light client would be the next step).
+- With the relayer, the team wallet is trusted to copy Arc data faithfully (auditable with
+  `verify.ts`). In CCIP mode, that trust moves to Chainlink's CCIP network plus our two small
+  contracts. The team wallet still holds the root roles needed to fix or take down a name.
 - Records are a snapshot of immutable fund parameters (weights, fee and creator never change after
   creation). Live NAV is not stored in ENS; apps read it from the fund contract.

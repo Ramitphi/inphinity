@@ -9,7 +9,7 @@ import { useTx } from '../lib/tx'
 import { POLL, useFunds, useStocks, useUsdcBalance } from '../hooks/data'
 import { AmountInput, Change, Flash, KV, Lcd, useDebounced, useNow } from '../components/ui'
 import { parse } from './Markets'
-import { ensAppUrl, useFundEns, type FundEns } from '../lib/ens'
+import { ccipMessageUrl, ensAppUrl, useFundEns, type FundEns } from '../lib/ens'
 
 const chainId = arcTestnet.id
 const SHADES = ['#0a0a0a', '#4a4a4a', '#7a7a7a', '#a5a5a5', '#cfcfcf', '#2a2a2a', '#5f5f5f', '#909090', '#bababa', '#e2e2e2']
@@ -262,7 +262,7 @@ function EnsBox({ fund, symbol, name, creator, feeBps, weights }: {
       <div className="in">
         {ens.isLoading ? <span className="skel" style={{ width: '60%' }} /> : !ens.data ? (
           <div className="note" style={{ marginTop: 0 }}>
-            Not named yet. The Inphinity relayer registers each new fund as a name under inphinity.eth, usually within a minute.
+            Not named yet. Each new fund is named under inphinity.eth on Sepolia: Arc sends it through Chainlink CCIP, which takes a few minutes.
           </div>
         ) : <EnsRecords ens={ens.data} fund={fund} checks={{ creator, feeBps, weights }} />}
       </div>
@@ -288,6 +288,11 @@ function EnsRecords({ ens, fund, checks }: { ens: FundEns; fund: Address; checks
       {rows.map(([k, v, ok]) => (
         <KV key={k} k={k}><span className="mono">{v ?? '—'}</span> <span className={ok ? 'up' : 'down'}>{ok ? '✓' : '✗'}</span></KV>
       ))}
+      <KV k="Delivered by">
+        {r['inphinity.ccip']
+          ? <a className="mono" href={ccipMessageUrl(r['inphinity.ccip'])} target="_blank" rel="noopener noreferrer">Chainlink CCIP {short(r['inphinity.ccip'] as Address)} ↗</a>
+          : <span className="mono">Inphinity relayer</span>}
+      </KV>
       <div className="note">
         ✓ means the ENS record matches this fund contract on Arc. The name token belongs to the creator, but only the
         registry can edit its records, and the creator cannot point the name at another resolver or transfer it.

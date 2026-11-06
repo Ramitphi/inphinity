@@ -38,7 +38,8 @@ Deployed by `setup-registry.ts`. Addresses are deterministic from the team walle
 | UserRegistry proxy for `inphinity.eth` | `0xefC414eb999907620AbdA991decD2BD22aBb9Ac1` |
 | PermissionedResolver proxy | `0x26E1611FD97133dfaef7b562D88528e8C1649ae2` |
 
-No new Solidity: everything is ENS's audited contracts, configured through their roles.
+The ENS side uses only ENS's audited contracts, configured through their roles. The optional
+Chainlink CCIP mode adds two small contracts of ours (see below).
 
 ## Runbook
 
@@ -102,6 +103,49 @@ The team wallet's 0.1 Sepolia ETH covers setup plus several dozen funds at that 
 | `APP_URL` | setup-registry | `url` record of `inphinity.eth` and the default bundle |
 | `ENS_DURATION_DAYS`, `PAYMENT_TOKEN` | register-parent | registration length (default 365) and a forced stablecoin |
 
+## Chainlink CCIP mode: name funds onchain, without the relayer
+
+The relayer is an offchain script. In CCIP mode, naming happens onchain instead: Arc sends each new
+fund to Sepolia through Chainlink CCIP, inside the same transaction that creates the fund.
+
+```
+Arc Testnet                                        Ethereum Sepolia
+IndexFactory.createIndex(label = symbol)           InphinityEnsReceiver.ccipReceive
+  -> ArcEnsRegistrar.register  --Chainlink CCIP-->   -> UserRegistry.register(label, creator, ROLE_RENEW)
+     reads the fund, pays ~0.51 USDC                 -> resolver: Arc address + text records
+     (native) per message                            -> link <symbol> and latest
+```
+
+- `contracts/ccip/ArcEnsRegistrar.sol` (Arc) plugs into the factory's existing registrar hook
+  (`IndexFactory.setRegistrar`), so the factory is not redeployed. It **never reverts**. If the
+  fee balance is empty or CCIP refuses, it emits `NamingSkipped`, the fund is still created, and
+  the relayer can name it later.
+- `contracts/ccip/InphinityEnsReceiver.sol` (Sepolia) accepts messages only from the Sepolia CCIP
+  router, only from Arc's chain selector, and only from our registrar. It writes the same records
+  as the relayer, plus `inphinity.ccip` = the CCIP message id. If naming fails, the message is
+  stored and anyone can call `retry(messageId)`.
+- Lane: Arc Testnet router `0xdE4E…eab8` → Sepolia router `0x0BF3…3A59` (OnRamp 2.0.0).
+  Fee ~0.51 USDC per fund, paid in Arc's native USDC from the registrar's balance.
+  Delivery takes a few minutes. Track it at https://ccip.chain.link.
+
+```bash
+cd ens && export PRIVATE_KEY=0x...      # team wallet: owns IndexFactory and inphinity.eth
+bun run ccip-setup -- --dry-run         # preview
+bun run ccip-setup                      # deploy both contracts, grant ENSv2 roles, fund 3 USDC
+bun run ccip-setup -- --enable          # IndexFactory.setRegistrar(ArcEnsRegistrar): CCIP naming ON
+bun run ccip-setup -- --disable         # kill switch: setRegistrar(0), fund creation keeps working
+```
+
+Before `--enable`, the app on `main` must send a label in `createIndex`. Once a registrar is set,
+the factory rejects an empty label. The frontend in this branch sends one.
+
+Keep the relayer as a backup if you like (`bun run relayer -- --once` now and then). It skips names
+CCIP already wrote. Don't run it in watch mode at the same time as CCIP: it could register a fund
+before the CCIP message lands, and the message would then take the `-2` label.
+
+Gas on the forks: Arc `createIndex` ~3.1M including the CCIP send. Sepolia `ccipReceive` ~1.17M,
+against a 2.5M limit (`ArcEnsRegistrar.setGasLimit`).
+
 ## Verify in the ENS app
 
 1. Open https://sepolia.app.ens.domains/inphinity.eth. The owner should be `0xC658…4C93`, and the
@@ -150,6 +194,25 @@ Hardhat only mines on transactions, and `register-parent` waits on chain time. I
 on a fork for a name that is not registered yet, also mine blocks in the background, e.g.
 `while true; do curl -s -X POST -H 'content-type: application/json' 127.0.0.1:8545 --data '{"jsonrpc":"2.0","id":1,"method":"evm_mine","params":[]}' >/dev/null; sleep 4; done`.
 
+### Testing the CCIP path on forks
+
+```bash
+# two forks (pin recent blocks: publicnode is not an archive node)
+FORK_BLOCK=<sepolia block> bun run fork                                   # :8545
+# Arc: same idea, chainId 5042002, hardfork cancun, forking https://rpc.testnet.arc.network, port 8546
+export SEPOLIA_RPC_URL=http://127.0.0.1:8545 ARC_RPC_URL=http://127.0.0.1:8546 \
+       ENS_STATE_FILE=/tmp/fork-state.json FORK_IMPERSONATE=0xC658A9Bd5ADE6CCd87874f5De925528CE57b4C93
+cp deployments.sepolia.json /tmp/fork-state.json   # impersonate the team wallet on both nodes first
+bun run ccip-setup -- --enable && bun run test:ccip
+```
+
+`test/ccip-fork-e2e.ts` creates real funds on the Arc fork, so the message goes through the real
+Arc router and OnRamp. It checks the OnRamp payload byte-for-byte, then delivers it to the receiver
+as the Sepolia router would, and resolves the name through the Universal Resolver. The only hop it
+simulates is the Chainlink network carrying the bytes. It also covers duplicate delivery, impostor
+senders and chains, label collisions, failure + `retry`, and fund creation with an empty fee
+balance.
+
 ## Files
 
 | File | What it does |
@@ -157,6 +220,9 @@ on a fork for a name that is not registered yet, also mine blocks in the backgro
 | `src/register-parent.ts` | Commit-reveal registration of `inphinity.eth` via the ETH Registrar, paid in a stablecoin |
 | `src/setup-registry.ts` | UserRegistry + Permissioned Resolver via the Verifiable Factory, attach, reserve labels, default bundle |
 | `src/relayer.ts` | Arc → ENS: register fund names to creators, write records, maintain symbol and `latest` links |
+| `src/ccip-setup.ts` | Deploy and wire the Chainlink CCIP bridge, `--enable` / `--disable` it on the factory |
+| `../contracts/ccip/` | `ArcEnsRegistrar` (Arc), `InphinityEnsReceiver` (Sepolia), shared label library; compiled into `ccip-artifacts/` |
+| `test/ccip-fork-e2e.ts` | CCIP end-to-end test on Arc + Sepolia forks |
 | `src/verify.ts` | Resolve through the Universal Resolver and compare with live Arc data and the token roles |
 | `src/records.ts` | Diff-and-write records, record linking helpers |
 | `src/lib.ts` | ENSv2 role bitmaps, DNS encoding, label rules, state file, dry-run aware sender |

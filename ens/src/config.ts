@@ -38,6 +38,14 @@ export const ARC = {
   indexFactory: "0x9fa4034efb237a7c154adea20b1ccfa0cd538b11",
 } as const;
 
+/** Chainlink CCIP (docs.chain.link CCIP directory, testnet; lane Arc Testnet -> Ethereum Sepolia, OnRamp 2.0.0). */
+export const CCIP = {
+  arcRouter: "0xdE4E7FED43FAC37EB21aA0643d9852f75332eab8",
+  sepoliaRouter: "0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59",
+  arcSelector: 3034092155422581607n,
+  sepoliaSelector: 16015286601757825753n,
+} as const;
+
 /** ENSIP-11 coin type for Arc Testnet: 0x80000000 | 5042002. Coin type 60 is deliberately never set. */
 export const ARC_COIN_TYPE = 0x80000000n | BigInt(ARC.chainId); // 2152525650n
 
@@ -59,7 +67,8 @@ const transport = (url: string) => http(url, { timeout: 60_000, retryCount: 3 })
 export const sepoliaClient = createPublicClient({ chain: sepolia, transport: transport(SEPOLIA_RPC_URL) });
 export const arcClient = createPublicClient({ chain: arcTestnet, transport: transport(ARC_RPC_URL) });
 
-const isLocal = /^https?:\/\/(127\.0\.0\.1|localhost)/.test(SEPOLIA_RPC_URL);
+const localRe = /^https?:\/\/(127\.0\.0\.1|localhost)/;
+const isLocal = localRe.test(SEPOLIA_RPC_URL) && (!process.env.ARC_RPC_URL || localRe.test(ARC_RPC_URL));
 
 /**
  * The signer. Normally a local account from PRIVATE_KEY.
@@ -69,7 +78,7 @@ const isLocal = /^https?:\/\/(127\.0\.0\.1|localhost)/.test(SEPOLIA_RPC_URL);
  */
 export function loadAccount(): Account | Address | null {
   if (process.env.FORK_IMPERSONATE) {
-    if (!isLocal) throw new Error("FORK_IMPERSONATE only works with a localhost SEPOLIA_RPC_URL.");
+    if (!isLocal) throw new Error("FORK_IMPERSONATE only works with localhost RPCs (SEPOLIA_RPC_URL, and ARC_RPC_URL if set).");
     return process.env.FORK_IMPERSONATE as Address;
   }
   const pk = process.env.PRIVATE_KEY;
@@ -80,9 +89,15 @@ export function loadAccount(): Account | Address | null {
   return privateKeyToAccount((pk.startsWith("0x") ? pk : `0x${pk}`) as Hex);
 }
 
-export function walletFor(account: Account | Address) {
-  return createWalletClient({ account, chain: sepolia, transport: transport(SEPOLIA_RPC_URL) });
+export type ChainName = "sepolia" | "arc";
+
+export function walletFor(account: Account | Address, chain: ChainName = "sepolia") {
+  return chain === "arc"
+    ? createWalletClient({ account, chain: arcTestnet, transport: transport(ARC_RPC_URL) })
+    : createWalletClient({ account, chain: sepolia, transport: transport(SEPOLIA_RPC_URL) });
 }
+
+export const publicFor = (chain: ChainName) => (chain === "arc" ? arcClient : sepoliaClient);
 
 /** The address scripts read and simulate as: the signer if present, else the team wallet. */
 export function actingAddress(account: Account | Address | null): Address {
