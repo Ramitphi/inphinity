@@ -30,6 +30,14 @@ export const STOCKS = [
   { name: "Mock Alphabet", symbol: "tGOOGL" },
   { name: "Mock Meta Platforms", symbol: "tMETA" },
   { name: "Mock SPDR S&P 500 ETF", symbol: "tSPY" },
+  { name: "Mock Netflix", symbol: "tNFLX" },
+  { name: "Mock AMD", symbol: "tAMD" },
+  { name: "Mock JPMorgan Chase", symbol: "tJPM" },
+  { name: "Mock Visa", symbol: "tV" },
+  { name: "Mock Walmart", symbol: "tWMT" },
+  { name: "Mock Coca-Cola", symbol: "tKO" },
+  { name: "Mock Walt Disney", symbol: "tDIS" },
+  { name: "Mock Oracle", symbol: "tORCL" },
 ] as const;
 export const DECIMALS = 18;
 
