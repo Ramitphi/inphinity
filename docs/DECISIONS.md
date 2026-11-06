@@ -125,6 +125,39 @@ on Arc, with text records for weights, fee and creator.
 - Two designs were explored in parallel (PR #7 and PR #8). We kept #7.
 - Lesson: live Sepolia ENS writes need 4.5–7.5M gas, so the CCIP gas limit is 9M.
 
+### 6a. What lives in ENS vs what is read live (brainstorm, 6 Nov, ~23:45 IST)
+
+**Question (Ramit), looking at the fund profile page `/bchip.inphinity.eth`:** NAV per share, AUM and shares
+outstanding aren't written to the ENSv2 registry, right?
+
+**Answer:** correct, by design.
+
+| On the profile page | Source | Changes? |
+|---|---|---|
+| Name, symbol, `bchip.inphinity.eth` | ENS records on Sepolia (`name`, `inphinity.symbol`) | Fixed, written once at fund creation |
+| Description, weights, creator, chain, disclaimer | ENS text records | Fixed |
+| Fee (1.00% / yr) | ENS `inphinity.fee`, checked against Arc | Fixed (immutable in the fund) |
+| Fund address | ENS address record, Arc ENSIP-11 coin type `2152525650` | Fixed |
+| **NAV per share, AUM, shares outstanding** | **Read live from the fund contract on Arc** (`navPerShare()`, `nav()`, `totalSupply()`) | Every CRE price update, invest and redeem |
+
+**Why NAV is not written to ENS:**
+- **Cost and staleness.** It would take a Sepolia write every few minutes per fund, and the value would still
+  lag.
+- **Purpose.** ENS holds the fund's **identity** (who it is, where it lives, what it holds). The fund contract is
+  the single source of truth for **value**. A copy in ENS would be a second, stale truth.
+- **Verification.** The profile page joins the two and verifies them: its "Verified against Arc" panel checks
+  that the ENS records (address, symbol, fee, creator) match the onchain fund.
+
+**Option considered: live NAV through ENS with CCIP-Read** (ENSIP-10 / EIP-3668 offchain lookup).
+- The resolver would point to a small gateway that reads `navPerShare()` from Arc on each query and returns a
+  signed answer, so wallets could resolve `bchip.inphinity.eth` → `nav` with no writes.
+
+**Decision:** **skipped for the hackathon.** It needs a hosted gateway and a resolver change. It's noted as a
+post-hackathon item.
+
+**Pitch line:** "Identity lives in ENS, value lives onchain on Arc, and the profile page joins and verifies
+them."
+
 ## 7. Frontend and design
 
 - React, Vite, wagmi and viem on Arc Testnet. Pages: Markets, Indices, Create, Portfolio, Bridge.
@@ -156,6 +189,7 @@ on Arc, with text records for weights, fee and creator.
 ## 10. Open questions and next steps
 
 - **Indian stocks:** NSE prices through CRE, and a licensed issuer or custodian on a home chain.
+- **ENS:** live NAV via a CCIP-Read gateway (see 6a).
 - **Production:** CRE deployed on a DON with the KeystoneForwarder instead of the mock, and real liquidity
   providers for exchange inventory.
 - **Product:** a SIP screen, fund rebalancing, and a secondary market for fund shares if demand appears.
