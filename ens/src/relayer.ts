@@ -51,7 +51,7 @@ const indexCreated = indexFactoryAbi.find((x) => x.type === "event" && x.name ==
 const eventLabels = new Map<string, string>();
 let scannedTo = ARC_FROM_BLOCK - 1n;
 
-async function scanEvents() {
+export async function scanEvents() {
   const head = await arc.getBlockNumber();
   while (scannedTo < head) {
     const from = scannedTo + 1n;
@@ -62,7 +62,7 @@ async function scanEvents() {
   }
 }
 
-async function readFund(index: number): Promise<FundInfo> {
+export async function readFund(index: number): Promise<FundInfo> {
   const fund = await arc.readContract({ ...factory, functionName: "indexAt", args: [BigInt(index)] });
   const f = { address: fund, abi: indexFundAbi } as const;
   const [name, symbol, creator, feeBps, tokens, weights] = await Promise.all([
@@ -94,16 +94,16 @@ async function readFund(index: number): Promise<FundInfo> {
 // Sepolia side
 // ---------------------------------------------------------------------------
 
-type Ctx = { s: ReturnType<typeof signer>; userRegistry: Address; resolver: Address; parentExpiry: bigint };
+export type Ctx = { s: ReturnType<typeof signer>; userRegistry: Address; resolver: Address; parentExpiry: bigint };
 
-const fullName = (label: string) => `${label}.${PARENT_NAME}`;
+export const fullName = (label: string) => `${label}.${PARENT_NAME}`;
 
-async function labelState(ctx: Ctx, label: string) {
+export async function labelState(ctx: Ctx, label: string) {
   return c.readContract({ address: ctx.userRegistry, abi: registryAbi, functionName: "getState", args: [labelId(label)] });
 }
 
 /** Finds the label already used for this fund, or the first free candidate. */
-async function chooseLabel(ctx: Ctx, f: FundInfo): Promise<{ label: string; registered: boolean }> {
+export async function chooseLabel(ctx: Ctx, f: FundInfo): Promise<{ label: string; registered: boolean }> {
   const base =
     sanitizeLabel(f.eventLabel ?? "") ?? sanitizeLabel(f.symbol) ?? sanitizeLabel(f.name) ?? `fund-${f.index}`;
   for (let n = 1; n < 100; n++) {
@@ -171,14 +171,19 @@ export async function processFund(ctx: Ctx, f: FundInfo): Promise<string> {
   return name;
 }
 
-async function main() {
-  const state = loadState();
-  const s = signer();
+/** Builds the Sepolia context (registry, resolver, parent expiry) and checks inphinity.eth points at our registry. */
+export async function loadCtx(s: ReturnType<typeof signer>, state = loadState()): Promise<Ctx> {
   if (!state.userRegistry || !state.resolver) throw new Error("Run setup-registry.ts first (no UserRegistry/resolver in deployments.sepolia.json).");
   const onchainSub = await c.readContract({ address: ENS.ethRegistry, abi: registryAbi, functionName: "getSubregistry", args: [PARENT_LABEL] });
   if (onchainSub.toLowerCase() !== state.userRegistry.toLowerCase()) throw new Error(`${PARENT_NAME} subregistry is ${onchainSub}, expected ${state.userRegistry}.`);
   const parentExpiry = await c.readContract({ address: ENS.ethRegistry, abi: registryAbi, functionName: "getExpiry", args: [labelId(PARENT_LABEL)] });
-  const ctx: Ctx = { s, userRegistry: state.userRegistry, resolver: state.resolver, parentExpiry };
+  return { s, userRegistry: state.userRegistry, resolver: state.resolver, parentExpiry };
+}
+
+async function main() {
+  const state = loadState();
+  const s = signer();
+  const ctx = await loadCtx(s, state);
   console.log(`Relayer: Arc IndexFactory ${ARC.indexFactory} -> ${PARENT_NAME} (UserRegistry ${ctx.userRegistry})${DRY_RUN ? " (dry-run)" : ""}`);
 
   let done = 0; // funds fully processed in this run
