@@ -35,6 +35,12 @@ This is the **project memory** - what Arc Studio remembers about building this a
 - Keep the `installShareSync()` call in `src/main.tsx` when editing it; it keeps the Studio address bar in step with in-app navigation.
 - Navigate inside the app with relative links.
 
+## Build log and Arc Studio sync (standing rule)
+
+- Every meaningful step (merge, deploy, onchain transaction, live test, finding, decision) gets a row in `docs/BUILD_LOG.md`: time in IST with UTC in brackets, one line on what happened, and a commit hash or explorer link. Close items in its "Open items" list as they land.
+- After each update, mirror the log into the Arc Studio project (app `7582b931-f752-4b46-a210-d0898b2062a7`) so Studio shows the same timeline: `arc-studio run "<overwrite docs/BUILD_LOG.md with the attached file, touch nothing else>" --file docs/BUILD_LOG.md:docs/ --app 7582b931-f752-4b46-a210-d0898b2062a7`, then confirm with `arc-studio cat docs/BUILD_LOG.md`.
+- Keep the Studio workspace in step with GitHub `main` (code, contracts, this file) after merges, so the Arc Studio project link always shows the current build.
+
 ## To Run
 
 ```bash
