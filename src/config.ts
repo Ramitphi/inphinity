@@ -3,7 +3,7 @@
  * Built with Arc Studio — https://studio.arc.io
  */
 
-import { http, createConfig } from 'wagmi'
+import { http, fallback, createConfig } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
 import { arcTestnet, baseSepolia } from 'viem/chains'
 import { injected } from 'wagmi/connectors'
@@ -17,7 +17,14 @@ export const config = createConfig({
   chains: [arcTestnet, baseSepolia, mainnet], // Base Sepolia for the bridge; mainnet for ENS
   connectors: [injected()],
   transports: {
-    [arcTestnet.id]: http(),
+    // Two public Arc RPCs with batching: if one rate-limits (HTTP 429), reads fall through to the other.
+    [arcTestnet.id]: fallback(
+      [
+        http('https://rpc.testnet.arc.network', { batch: true }),
+        http(arcTestnet.rpcUrls.default.http[0], { batch: true }),
+      ],
+      { retryCount: 2 },
+    ),
     [baseSepolia.id]: http(),
     [mainnet.id]: http(), // ENS resolution uses mainnet
   },
